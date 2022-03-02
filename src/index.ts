@@ -14,8 +14,15 @@ import {
 	javascriptBundle
 } from "polygraphic";
 import { DocumentOutput } from "./types";
+export * from "./types";
 
-export const render = <Global extends GlobalState, Local>(
+export const html = <Global extends GlobalState, Local>(
+	root : ComponentFromConfig<Global, Local>
+) => (
+		state : Global & Local
+	) => document(json(root)(state));
+
+export const json = <Global extends GlobalState, Local>(
 	root : ComponentFromConfig<Global, Local>
 ) => (
 		state : Global & Local
@@ -38,6 +45,7 @@ export const render = <Global extends GlobalState, Local>(
 			],
 			css : [],
 			html : [],
+			scripts : [],
 			cache : new Set()
 		};
 		handle({
@@ -276,6 +284,7 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 								cache : output.cache,
 								css : output.css,
 								html : [],
+								scripts : [],
 								js : output.js
 							}
 						});
@@ -434,11 +443,7 @@ const document = ({
 	scripts,
 	html,
 	js
-} : {    
-    scripts : string[]
-    html : string
-    js : string
-}) => `<!doctype html>
+} : DocumentOutput) => `<!doctype html>
     <html>
         <style>
 html, body {
@@ -466,9 +471,10 @@ button {
     <head>
     </head>
     <body>
-        ${html}
+        ${html.join("")}
         <script>
 ${javascriptBundle()}
+/*
 var socket = (function () {
     var socket = io();
     return {
@@ -480,6 +486,7 @@ var socket = (function () {
         }
     };
 })();
+*/
 function Local(value, index) {
     return {
         value : value,
@@ -546,6 +553,9 @@ function Component(component) {
                         target.innerText = value;
                         return;
                     case "data":
+                        if(!cache.prevData) {
+                            target.innerHTML = "";
+                        }
                         var prev = cache.prevData || [];
                         var curr = value.map(function(it) {
                             return "id" in it ? it.id : it.key;
@@ -674,7 +684,7 @@ function bind(root, local) {
 }
         </script>
         <script>
-${js}
+${js.join("\n")}
         </script>
     </body>
 </html>`;
