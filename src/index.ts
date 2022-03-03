@@ -190,7 +190,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		props.style.color = value;
 		return props;
 	case "size":
-		props.style.fontSize = `${value}px`;
+		props.style["font-size"] = `${value}px`;
 		return props;
 	case "src":
 		props.src = value;
@@ -450,13 +450,7 @@ html, body {
     display : flex;
     width : 100%;
     min-height : 100%;
-}
-html, body, button {
-    background : transparent;
-    margin : 0;
-    padding : 0;
-    border : 0;
-    font-size : 16px;
+	font-size : 16px;
 }
 button {
     background : green;
@@ -465,6 +459,12 @@ button {
 }
 * { 
     box-sizing: border-box;
+}
+select, input, button, html, body {
+	background : transparent;
+    margin : 0;
+    padding : 0;
+    border : 0;
 }
         </style>
         ${scripts.map(src => `<script src="${src}"></script>`).join("")}
@@ -583,7 +583,7 @@ function Component(component) {
                             }
                         }
                         // MOVE / UPDATE
-                        for(var i = 0; i < value.length; i++) {
+                        for(var i = 0; i < target.children.length; i++) {
                             target.children[i].__local__.value = value[i];
                             target.children[i].__local__.index = i;
                         }
