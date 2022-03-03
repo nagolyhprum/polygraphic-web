@@ -88,13 +88,20 @@ const getTagName = (name : Tag) : {
 			name : "div",
 			selfClosing : false
 		};
+	case "checkbox":
 	case "input":
 		return {
 			name : "input",
 			selfClosing : true
 		};
+	case "image":
+		return {
+			name : "img",
+			selfClosing : true
+		};
 	}
 };
+
 
 const numberToMeasurement = (input : number | null | undefined) : string => {
 	if(input === null || input === undefined) {
@@ -110,7 +117,7 @@ const numberToMeasurement = (input : number | null | undefined) : string => {
 		return `${input}px`;
 	}
 };
-
+	
 const handleBox = (prefix : string, input : BoxProp<Array<unknown> | number>, props : TagProps) => {
 	keys(input).forEach(key => {
 		const value = input[key];
@@ -149,6 +156,9 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		}
 		if(value === "scrollable") {
 			props.style.overflow = "auto";
+		}
+		if(value === "checkbox") {
+			props.type="checkbox";
 		}
 		return props;
 	case "background":
@@ -209,6 +219,14 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			// TODO
 		}
 		return props;
+	case "round":
+		props.style["border-radius"] = numberToMeasurement(value);
+		return props;
+	case "clip":
+		if(value) {
+			props.style.overflow = "hidden";
+		}
+		return props;
 	case "onDragEnd":
 	case "onDrop":
 	case "onInit":
@@ -218,13 +236,13 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	case "onBack":
 	case "observe":
 	case "onSelect":
+	case "onChange":
 	case "children":
 	case "text":
 	case "adapters":
 	case "data":
 	case "focus":
 	case "animation":
-		// TODO
 		return props;
 	}
 	failed(name);
@@ -324,13 +342,17 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 	case "onInput":
 	case "onEnter":
 	case "onSelect":
+	case "onChange":
 	case "onClick": {
 		const id = `${name}:${component.id}`;
 		if(!output.cache.has(id)) {
 			output.cache.add(id);
 			output.js.push(`setEvent("${component.id}", "${name}", function(local, index, event) {`);
 			(value as Array<(config : any) => ProgrammingLanguage>).forEach((callback) => {
-				const generated = code(callback, new Set([]));
+				const generated = code(callback, new Set([]), {
+					global,
+					local
+				});
 				output.js.push(javascript(generated, "\t"));
 			});
 			output.js.push("});");
@@ -359,6 +381,8 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 	case "animation":
 	case "mainAxisAlignment":
 	case "crossAxisAlignment":
+	case "round":
+	case "clip":
 		return;
 	}
 	failed(name);
@@ -445,30 +469,32 @@ const document = ({
 	js
 } : DocumentOutput) => `<!doctype html>
     <html>
-        <style>
+    <head>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<style>
 html, body {
-    display : flex;
-    width : 100%;
-    min-height : 100%;
+	display : flex;
+	width : 100%;
+	min-height : 100%;
 	font-size : 16px;
 }
 button {
-    background : green;
-    border-radius : 4px;
-    padding : 4px;
+	background : green;
+	border-radius : 4px;
+	padding : 4px;
 }
 * { 
-    box-sizing: border-box;
+	box-sizing: border-box;
 }
 select, input, button, html, body {
+	text-align : start;
 	background : transparent;
-    margin : 0;
-    padding : 0;
-    border : 0;
+	margin : 0;
+	padding : 0;
+	border : 0;
 }
-        </style>
-        ${scripts.map(src => `<script src="${src}"></script>`).join("")}
-    <head>
+		</style>
+		${scripts.map(src => `<script src="${src}"></script>`).join("")}
     </head>
     <body>
         ${html.join("")}
@@ -520,6 +546,16 @@ function numberToMeasurement(input) {
         return input + "px";
     }
 }
+var protect = (function() {
+	var last = 0;
+	return function(callback) {
+		var now = Date.now();
+		if(now - last >= 300) {
+			last = now;
+			callback();
+		}
+	};
+})();
 function Component(component) {
     var cache = {};
     return new Proxy(component, {
@@ -546,8 +582,33 @@ function Component(component) {
                     case "placeholder":
                         target.placeholder = value;
                         return;
+					case "animation":
+						function render() {
+							const progress = Math.max(Math.min((Date.now() - value.start) / 300, 1), 0)
+							if(progress < 1) {
+								requestAnimationFrame(render);
+							}
+							if(value.direction === "in" && value.name === "right") {
+								target.style.transform = "translateX(" + (100 - 100 * progress) + "%)";
+							}
+							if(value.direction === "out" && value.name === "right") {
+								target.style.transform = "translateX(" + 100 * progress + "%)";
+							}
+							if(value.direction === "in" && value.name === "opacity") {
+								target.style.opacity = progress;
+							}
+							if(value.direction === "out" && value.name === "opacity") {
+								target.style.opacity = (1 - progress);
+							}
+						}
+						render();
+						return;
                     case "value":
-                        target.value = value;
+						if(target.type === "checkbox") {
+							target.checked = value;
+						} else {
+							target.value = value;
+						}
                         return;
                     case "text":
                         target.innerText = value;
@@ -601,6 +662,15 @@ function Component(component) {
         }
     });
 }
+var setTimeout = (function() {
+	var setTimeout = window.setTimeout;
+	return function(callback, ms) {
+		setTimeout(function() {
+			callback();
+			update();
+		}, ms);
+	};
+})();
 var update = (function() {
     var timeout;
     return function() {
@@ -632,40 +702,53 @@ function bind(root, local) {
                 component.ondragleave = prevent
                 component.ondragover = prevent
                 component.ondrop = function() {
-                    callback(local.value, local.index);
-                    update();
+					callback(local.value, local.index);
+					update();
                 };
             } else if(event === "onDragStart") {
                 component.ondragstart = function() {
-                    callback(local.value, local.index);
-                    update();
+					callback(local.value, local.index);
+					update();
                 };
             } else if(event === "onDragEnd") {
                 component.ondragend = function() {
-                    callback(local.value, local.index);
-                    update();
+					callback(local.value, local.index);
+					update();
                 };
             } else if(event === "onSelect") {
                 component.onchange = function() {
+					protect(function() {
+						callback(local.value, local.index, this.value);
+						update();
+					});
+                };
+            } else if(event === "onInput") {
+                component.oninput = function() {					
                     callback(local.value, local.index, this.value);
                     update();
                 };
-            } else if(event === "onInput") {
-                component.oninput = function() {
-                    callback(local.value, local.index, this.value);
-                    update();
+            } else if(event === "onChange") {
+				component.onclick = function() {					
+					protect(function() {
+						callback(local.value, local.index, this.checked);
+						update();
+					});
                 };
             } else if(event === "onClick") {
                 component.onclick = function() {
-                    callback(local.value, local.index/*,event*/);
-                    update();
+					protect(function() {
+						callback(local.value, local.index/*,event*/);
+						update();
+					})
                 };
             } else if(event === "onEnter") {
-                component.onkeypress = function(e) {
-                    if(e.which === 13) {
-                        callback(local.value, local.index);
-                        update();
-                    }
+                component.onkeypress = function(e) {					
+					if(e.which === 13) {
+						protect(function() {
+							callback(local.value, local.index);
+							update();
+						});
+					}
                 };
             } else if(event === "observe") {
                 var wrapped = Component(component);
