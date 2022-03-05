@@ -105,3 +105,6 @@ dist
 
 *.js
 .parcel-cache
+pwa
+app
+.DS_Store

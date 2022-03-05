@@ -729,8 +729,9 @@ function bind(root, local) {
                 };
             } else if(event === "onChange") {
 				component.onclick = function() {					
+					const checked = this.checked;
 					protect(function() {
-						callback(local.value, local.index, this.checked);
+						callback(local.value, local.index, checked);
 						update();
 					});
                 };
