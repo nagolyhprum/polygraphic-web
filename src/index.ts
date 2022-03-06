@@ -15,6 +15,7 @@ import {
 } from "polygraphic";
 import { DocumentOutput } from "./types";
 export * from "./types";
+import moment, { Moment } from "moment";
 
 export const html = <Global extends GlobalState, Local>(
 	root : ComponentFromConfig<Global, Local>
@@ -45,7 +46,9 @@ export const json = <Global extends GlobalState, Local>(
 			],
 			css : [],
 			html : [],
-			scripts : [],
+			scripts : [
+				"https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"
+			],
 			cache : new Set()
 		};
 		handle({
@@ -207,16 +210,16 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		return props;
 	case "crossAxisAlignment":
 		if(component.name === "row") {
-			// TODO
-		} else if(component.name==="column") {
-			// TODO
+			props.style["align-items"] = value;
+		} else if(component.name === "column") {
+			props.style["align-items"] = value;
 		}
 		return props;
 	case "mainAxisAlignment":
 		if(component.name === "row") {
-			// TODO
-		} else if(component.name==="column") {
-			// TODO
+			props.style["justify-content"] = value;
+		} else if(component.name === "column") {
+			props.style["justify-content"] = value;
 		}
 		return props;
 	case "round":
@@ -351,7 +354,8 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 			(value as Array<(config : any) => ProgrammingLanguage>).forEach((callback) => {
 				const generated = code(callback, new Set([]), {
 					global,
-					local
+					local,
+					moment
 				});
 				output.js.push(javascript(generated, "\t"));
 			});
@@ -412,7 +416,8 @@ const handle = <Global extends GlobalState, Local>({
 			execute(generated, {
 				global,
 				local,
-				event : component
+				event : component,
+				moment
 			});
 		});
 	}
@@ -478,11 +483,6 @@ html, body {
 	min-height : 100%;
 	font-size : 16px;
 }
-button {
-	background : green;
-	border-radius : 4px;
-	padding : 4px;
-}
 * { 
 	box-sizing: border-box;
 }
@@ -492,6 +492,7 @@ select, input, button, html, body {
 	margin : 0;
 	padding : 0;
 	border : 0;
+	font-size : 16px;
 }
 		</style>
 		${scripts.map(src => `<script src="${src}"></script>`).join("")}
@@ -573,8 +574,10 @@ function Component(component) {
                         target.style[key] = numberToMeasurement(value);
                         return;
                     case "focus":
-                        target.focus();
-                        target.setSelectionRange(0, target.value.length);
+						windowSetTimeout(function() {
+							target.focus();
+							target.setSelectionRange(0, target.value.length);
+						});
                         return;
                     case "enabled":
                         target.disabled = !value;
@@ -662,10 +665,10 @@ function Component(component) {
         }
     });
 }
+var windowSetTimeout = window.setTimeout;
 var setTimeout = (function() {
-	var setTimeout = window.setTimeout;
 	return function(callback, ms) {
-		setTimeout(function() {
+		return windowSetTimeout(function() {
 			callback();
 			update();
 		}, ms);
@@ -675,7 +678,7 @@ var update = (function() {
     var timeout;
     return function() {
         clearTimeout(timeout);
-        timeout = setTimeout(function() {
+        timeout = windowSetTimeout(function() {
             listeners.forEach(function (listener) {
                 listener.callback(listener.local.value, listener.local.index, listener.component)
             });        
@@ -715,26 +718,29 @@ function bind(root, local) {
 					callback(local.value, local.index);
 					update();
                 };
-            } else if(event === "onSelect") {
-                component.onchange = function() {
-					protect(function() {
+            } else if(event === "onChange") {
+				if(component.tagName.toLowerCase() === "select") {
+					component.onchange = function() {					
+						const value = this.value;
+						protect(function() {
+							callback(local.value, local.index, value);
+							update();
+						});
+					};
+				} else if(component.type === "checkbox") {
+					component.onclick = function() {					
+						const checked = this.checked;
+						protect(function() {
+							callback(local.value, local.index, checked);
+							update();
+						});
+					};
+				} else {
+					component.oninput = function() {					
 						callback(local.value, local.index, this.value);
 						update();
-					});
-                };
-            } else if(event === "onInput") {
-                component.oninput = function() {					
-                    callback(local.value, local.index, this.value);
-                    update();
-                };
-            } else if(event === "onChange") {
-				component.onclick = function() {					
-					const checked = this.checked;
-					protect(function() {
-						callback(local.value, local.index, checked);
-						update();
-					});
-                };
+					};
+				}
             } else if(event === "onClick") {
                 component.onclick = function() {
 					protect(function() {

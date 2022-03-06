@@ -25,7 +25,8 @@
   "dependencies": {
     "@parcel/config-default": "^2.3.2",
     "@parcel/core": "^2.3.2",
-    "polygraphic": "^0.13.0",
+    "moment": "^2.29.1",
+    "polygraphic": "^0.17.0",
     "yargs": "^17.3.1"
   },
   "devDependencies": {

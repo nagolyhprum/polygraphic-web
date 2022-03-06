@@ -43,8 +43,8 @@ yargs.scriptName("polygraphic-web")
 			outputFS
 		});
 		const {bundleGraph} = await bundler.run();
-		for (let bundle of bundleGraph.getBundles()) {
-			await writeFile(path.join(argv.o, bundle.name), await outputFS.readFile(bundle.filePath, "utf8"));
+		for (let bundle of bundleGraph.getBundles()) {        
+			await writeFile(path.join(argv.o, path.basename(bundle.filePath)), await outputFS.readFile(bundle.filePath, "utf8"));
 		}
 		await workerFarm.end();
 		const dep = path.join(process.cwd(), argv.o, "index.js");
