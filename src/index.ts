@@ -11,7 +11,8 @@ import {
 	BoxProp,
 	TagProps,
 	ProgrammingLanguage,
-	javascriptBundle
+	javascriptBundle,
+	Alignment
 } from "polygraphic";
 import { DocumentOutput } from "./types";
 export * from "./types";
@@ -200,34 +201,40 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		props.draggable = "true";
 		return props;
 	case "color":
-		props.style.color = value;
+		props.style.color = value as string;
 		return props;
 	case "size":
 		props.style["font-size"] = `${value}px`;
 		return props;
 	case "src":
-		props.src = value;
+		props.src = value as string;
 		return props;
 	case "crossAxisAlignment":
 		if(component.name === "row") {
-			props.style["align-items"] = value;
+			props.style["align-items"] = value as Alignment;
 		} else if(component.name === "column") {
-			props.style["align-items"] = value;
+			props.style["align-items"] = value as Alignment;
 		}
 		return props;
 	case "mainAxisAlignment":
 		if(component.name === "row") {
-			props.style["justify-content"] = value;
+			props.style["justify-content"] = value as Alignment;
 		} else if(component.name === "column") {
-			props.style["justify-content"] = value;
+			props.style["justify-content"] = value as Alignment;
 		}
 		return props;
 	case "round":
-		props.style["border-radius"] = numberToMeasurement(value);
+		props.style["border-radius"] = numberToMeasurement(value as number);
 		return props;
 	case "clip":
 		if(value) {
 			props.style.overflow = "hidden";
+		}
+		return props;
+	case "shadow":
+		if(value) {
+			props.style["z-index"] = "1";
+			props.style["box-shadow"] = "rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px";
 		}
 		return props;
 	case "onDragEnd":
@@ -336,7 +343,44 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 		}
 		return;
 	}
-	case "onBack": // TODO : THIS ONE IS SPECIAL IN THAT IT IS THE ONLY ONE WITH A RETURN TYPE
+	case "onBack": {
+		const id = `${name}:${component.id}`;
+		if(!output.cache.has(id)) {
+			output.cache.add(id);
+			output.js.push("function onBack() {");
+			(value as Array<(config : any) => ProgrammingLanguage>).forEach((callback) => {
+				const generated = code(callback, new Set([]), {
+					global,
+					local,
+					moment
+				});
+				output.js.push(javascript(generated, "\t"));
+			});
+			output.js.push("}");
+			output.js.push(`history.pushState(null, document.title, location.href);
+window.onpopstate = function() {
+	if(onBack()) {
+		if(global.routes.length === 1) {
+			history.back();
+		} else {
+			global.routes[global.routes.length - 1].animation = {
+				direction : "out",
+				name : "right",
+				start : Date.now()
+			};
+			setTimeout(function() {
+				global.routes = global.routes.slice(0, -1);
+			}, 300);
+			history.pushState(null, document.title, location.href);
+		}
+	} else {
+		history.pushState(null, document.title, location.href);
+	}
+	update();
+};`);
+		}
+		return;
+	}
 	case "onInit":
 	case "onDragStart":
 	case "onDragEnd":
@@ -387,6 +431,7 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 	case "crossAxisAlignment":
 	case "round":
 	case "clip":
+	case "shadow":
 		return;
 	}
 	failed(name);
@@ -477,6 +522,7 @@ const document = ({
     <head>
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<style>
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
 html, body {
 	display : flex;
 	width : 100%;
@@ -486,7 +532,11 @@ html, body {
 * { 
 	box-sizing: border-box;
 }
+button {
+	cursor : pointer;
+}
 select, input, button, html, body {
+	font-family: 'Roboto', sans-serif;
 	text-align : start;
 	background : transparent;
 	margin : 0;
@@ -501,6 +551,7 @@ select, input, button, html, body {
         ${html.join("")}
         <script>
 ${javascriptBundle()}
+var isMobile = /mobi/i.test(window.navigator.userAgent);
 /*
 var socket = (function () {
     var socket = io();
@@ -577,7 +628,7 @@ function Component(component) {
 						windowSetTimeout(function() {
 							target.focus();
 							target.setSelectionRange(0, target.value.length);
-						});
+						}, 300);
                         return;
                     case "enabled":
                         target.disabled = !value;
@@ -595,7 +646,7 @@ function Component(component) {
 								target.style.transform = "translateX(" + (100 - 100 * progress) + "%)";
 							}
 							if(value.direction === "out" && value.name === "right") {
-								target.style.transform = "translateX(" + 100 * progress + "%)";
+								target.style.transform = "translateX(" + (100 * progress) + "%)";
 							}
 							if(value.direction === "in" && value.name === "opacity") {
 								target.style.opacity = progress;
