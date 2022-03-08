@@ -12,11 +12,24 @@ import {
 	TagProps,
 	ProgrammingLanguage,
 	javascriptBundle,
-	Alignment
+	Alignment,
+	props
 } from "polygraphic";
 import { DocumentOutput } from "./types";
 export * from "./types";
 import moment from "moment";
+import showdown from "showdown";
+
+const converter = new showdown.Converter();
+
+const speech = {
+	listen : () => {
+		// DO NOTHING
+	},
+	speak : () => {
+		// DO NOTHING
+	}
+};
 
 export const html = <Global extends GlobalState, Local>(
 	root : ComponentFromConfig<Global, Local>
@@ -28,7 +41,9 @@ export const json = <Global extends GlobalState, Local>(
 	root : ComponentFromConfig<Global, Local>
 ) => (
 		state : Global & Local
-	) : DocumentOutput => {    
+	) : DocumentOutput => { 
+		state.ui = {};
+		state.features = ["speech.listen"];
 		const component = root({
 			parent : {
 				width : MATCH,
@@ -40,15 +55,17 @@ export const json = <Global extends GlobalState, Local>(
 		});
 		const output : DocumentOutput = {
 			js : [
+				"var converter = new showdown.Converter();",
 				"var adapters = {};",
 				"var events = {};",
 				"var listeners = [];",
-				`var global = ${JSON.stringify(state)};`,
+				`var global = ${JSON.stringify(state, null, "\t")};`,
 			],
 			css : [],
 			html : [],
 			scripts : [
-				"https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js"
+				"https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js",
+				"https://cdnjs.cloudflare.com/ajax/libs/showdown/2.0.3/showdown.min.js"
 			],
 			cache : new Set()
 		};
@@ -241,6 +258,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			props.style["box-shadow"] = "rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px";
 		}
 		return props;
+	case "markdown":
 	case "onDragEnd":
 	case "onDrop":
 	case "onInit":
@@ -357,7 +375,8 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 				const generated = code(callback, new Set([]), {
 					global,
 					local,
-					moment
+					moment,
+					speech
 				});
 				output.js.push(javascript(generated, "\t"));
 			});
@@ -404,7 +423,8 @@ window.onpopstate = function() {
 				const generated = code(callback, new Set([]), {
 					global,
 					local,
-					moment
+					moment,
+					speech
 				});
 				output.js.push(javascript(generated, "\t"));
 			});
@@ -417,11 +437,15 @@ window.onpopstate = function() {
 			const generated = code(() => func, new Set([]), {
 				global,
 				local,
-				moment
+				moment,
+				speech
 			});
 			output.js.push(javascript(generated, "\t"));
 		});
 		return;
+	case "markdown":
+		output.html.push(converter.makeHtml(value?.toString() ?? ""));
+		return props;
 	case "visible":
 	case "padding":
 	case "margin":
@@ -477,7 +501,8 @@ const handle = <Global extends GlobalState, Local>({
 				global,
 				local,
 				event : component,
-				moment
+				moment,
+				speech
 			});
 		});
 	}
@@ -550,7 +575,7 @@ html, body {
 button {
 	cursor : pointer;
 }
-select, input, button, html, body {
+select, input, button, html, body, p {
 	font-family: 'Roboto', sans-serif;
 	text-align : start;
 	background : transparent;
@@ -580,6 +605,30 @@ var socket = (function () {
     };
 })();
 */
+var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+var speech = {
+	listen : function(config) {
+		recognition.onresult = function(e) {
+			config.onResult({
+				results: Array.from(e.results).map(function(array) {
+					return Array.from(array).map(function(alternative) {
+						return {
+							isFinal : array.isFinal,
+							confidence: alternative.confidence,
+							transcript: alternative.transcript
+						}
+					});
+				}),
+			});
+			update();
+		};
+		recognition.continuous = config.continuous || false;
+		recognition.lang = config.lang || "en-US";
+		recognition.interimResults = config.interimResults || false;
+		recognition.maxAlternatives = config.maxAlternatives || 1;
+		recognition.start();
+	}
+};
 function Local(value, index) {
     return {
         value : value,
@@ -694,6 +743,9 @@ function Component(component) {
                             target.innerHTML = "";
                         }
                         var prev = cache.prevData || [];
+						if(!value) {
+							return;
+						}
                         var curr = value.map(function(it) {
                             return "id" in it ? it.id : it.key;
                         });
@@ -733,6 +785,9 @@ function Component(component) {
                     case "visible":
                         target.style.display = value ? (target.style.flexDirection ? "flex" : "block") : "none";
                         return;
+					case "markdown":
+						target.innerHTML = converter.makeHtml(value);
+						return;
                 }
             }
         }

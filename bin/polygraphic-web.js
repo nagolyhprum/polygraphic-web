@@ -34,28 +34,32 @@ yargs.scriptName("polygraphic-web")
 		});
 		yargs.alias("o", "outDir");
 	}, async (argv) => {
-		await mkdir(argv.o);
-		const bundler = new Parcel({
-			entries: argv.path,
-			defaultConfig: "@parcel/config-default",
-			mode: "production",
-			workerFarm,
-			outputFS
-		});
-		const {bundleGraph} = await bundler.run();
-		for (let bundle of bundleGraph.getBundles()) {        
-			await writeFile(path.join(argv.o, path.basename(bundle.filePath)), await outputFS.readFile(bundle.filePath, "utf8"));
-		}
-		await workerFarm.end();
-		const dep = path.join(process.cwd(), argv.o, "index.js");
-		const {
-			default : {
-				App, 
-				state
+		try {
+			await mkdir(argv.o);
+			const bundler = new Parcel({
+				entries: argv.path,
+				defaultConfig: "@parcel/config-default",
+				mode: "production",
+				workerFarm,
+				outputFS
+			});
+			const {bundleGraph} = await bundler.run();
+			for (let bundle of bundleGraph.getBundles()) {        
+				await writeFile(path.join(argv.o, path.basename(bundle.filePath)), await outputFS.readFile(bundle.filePath, "utf8"));
 			}
-		} = require(dep);
-		const output = html(App)(state);
-		writeFile(path.join(argv.o, "index.html"), output);
+			await workerFarm.end();
+			const dep = path.join(process.cwd(), argv.o, "index.js");
+			const {
+				default : {
+					App, 
+					state
+				}
+			} = require(dep);
+			const output = html(App)(state);
+			writeFile(path.join(argv.o, "index.html"), output);
+		} catch(e) {
+			console.log("ERROR", e, JSON.stringify(e, null, "\t"));
+		}
 	})
 	.help()
 	.argv;
