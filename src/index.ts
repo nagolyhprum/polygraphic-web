@@ -159,6 +159,9 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			props.style.display = "flex";
 			props.style["flex-direction"] = value.toString();
 		}
+		if(value === "date") {
+			props.type = "date";
+		}
 		if(value === "scrollable") {
 			props.style.overflow = "auto";
 		}
@@ -411,7 +414,6 @@ window.onpopstate = function() {
 	}
 	case "funcs":
 		(value as Array<ProgrammingLanguage>).forEach((func) => {
-			console.log("HERRE");
 			const generated = code(() => func, new Set([]), {
 				global,
 				local,
@@ -671,7 +673,14 @@ function Component(component) {
 						render();
 						return;
                     case "value":
-						if(target.type === "checkbox") {
+						if(target.type === "date") {
+							if(value === -1) {
+								target.valueAsDate = null;
+							} else {
+								var local = new Date(value);
+								target.valueAsDate = new Date(Date.UTC(local.getFullYear(), local.getMonth(), local.getDate()));
+							}
+						} else if(target.type === "checkbox") {
 							target.checked = value;
 						} else {
 							target.value = value;
@@ -798,6 +807,17 @@ function bind(root, local) {
 							callback(local.value, local.index, checked);
 							update();
 						});
+					};
+				} else if(component.type === "date") {
+					component.oninput = function() {					
+						var value = this.valueAsDate;
+						if(value) {
+							var date = new Date(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate());
+							callback(local.value, local.index, date.getTime());
+						} else {
+							callback(local.value, local.index, -1);
+						}
+						update();
 					};
 				} else {
 					component.oninput = function() {					
