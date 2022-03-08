@@ -16,7 +16,7 @@ import {
 } from "polygraphic";
 import { DocumentOutput } from "./types";
 export * from "./types";
-import moment, { Moment } from "moment";
+import moment from "moment";
 
 export const html = <Global extends GlobalState, Local>(
 	root : ComponentFromConfig<Global, Local>
@@ -92,6 +92,7 @@ const getTagName = (name : Tag) : {
 			name : "div",
 			selfClosing : false
 		};
+	case "date":
 	case "checkbox":
 	case "input":
 		return {
@@ -253,6 +254,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	case "data":
 	case "focus":
 	case "animation":
+	case "funcs":
 		return props;
 	}
 	failed(name);
@@ -407,6 +409,17 @@ window.onpopstate = function() {
 		}
 		return;
 	}
+	case "funcs":
+		(value as Array<ProgrammingLanguage>).forEach((func) => {
+			console.log("HERRE");
+			const generated = code(() => func, new Set([]), {
+				global,
+				local,
+				moment
+			});
+			output.js.push(javascript(generated, "\t"));
+		});
+		return;
 	case "visible":
 	case "padding":
 	case "margin":
