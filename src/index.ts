@@ -258,6 +258,9 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			props.style["box-shadow"] = "rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px";
 		}
 		return props;
+	case "opacity":
+		props.style.opacity = `${value}`;
+		return props;
 	case "markdown":
 	case "onDragEnd":
 	case "onDrop":
@@ -447,6 +450,7 @@ window.onpopstate = function() {
 	case "markdown":
 		output.html.push(converter.makeHtml(value?.toString() ?? ""));
 		return props;
+	case "opacity":
 	case "visible":
 	case "padding":
 	case "margin":
@@ -703,10 +707,16 @@ function Component(component) {
                         target.placeholder = value;
                         return;
 					case "animation":
+						if(!value) return;
+						target.style.willChange = "opacity, transform";
 						function render() {
 							const progress = Math.max(Math.min((Date.now() - value.start) / 300, 1), 0)
 							if(progress < 1) {
 								requestAnimationFrame(render);
+							} else {
+								windowSetTimeout(function() {
+									target.style.willChange = "auto";
+								})
 							}
 							if(value.direction === "in" && value.name === "right") {
 								target.style.transform = "translateX(" + (100 - 100 * progress) + "%)";
@@ -906,12 +916,13 @@ function bind(root, local) {
                 };
             } else if(event === "observe") {
                 var wrapped = Component(component);
-                callback(local.value, local.index, wrapped)
                 listeners.push({
                     component : wrapped,
                     callback : callback,
                     local : local,
+					id : component.dataset.id
                 });
+                callback(local.value, local.index, wrapped)
             } else if(event === "onInit") {
                 callback(local.value, local.index);
                 update();
