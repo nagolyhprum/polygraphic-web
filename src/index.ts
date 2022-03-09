@@ -345,6 +345,7 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 			}
 			if(data) {
 				data.forEach(local => {
+					if(!local) return;
 					const parent : Component<Global, unknown> = {
 						width : 0,
 						height : 0,
@@ -575,7 +576,8 @@ html, body {
 button {
 	cursor : pointer;
 }
-select, input, button, html, body, p {
+select, input, button, html, body, p, span {
+	display : inline-flex;
 	font-family: 'Roboto', sans-serif;
 	text-align : start;
 	background : transparent;
@@ -711,6 +713,12 @@ function Component(component) {
 							}
 							if(value.direction === "out" && value.name === "right") {
 								target.style.transform = "translateX(" + (100 * progress) + "%)";
+							}
+							if(value.direction === "in" && value.name === "left") {
+								target.style.transform = "translateX(" + (-100 + 100 * progress) + "%)";
+							}
+							if(value.direction === "out" && value.name === "left") {
+								target.style.transform = "translateX(" + (-100 * progress) + "%)";
 							}
 							if(value.direction === "in" && value.name === "opacity") {
 								target.style.opacity = progress;
