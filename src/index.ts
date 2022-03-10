@@ -13,7 +13,8 @@ import {
 	ProgrammingLanguage,
 	javascriptBundle,
 	Alignment,
-	props
+	props,
+	getDependencies
 } from "polygraphic";
 import { DocumentOutput } from "./types";
 export * from "./types";
@@ -37,6 +38,17 @@ export const html = <Global extends GlobalState, Local>(
 		state : Global & Local
 	) => document(json(root)(state));
 
+const scripts = [{
+	dependency : "moment",
+	src : "https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js",
+}, {
+	dependency : "event.markdown",
+	src : "https://cdnjs.cloudflare.com/ajax/libs/showdown/2.0.3/showdown.min.js"
+}, {
+	dependency : "socket",
+	src : "https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"
+}];
+
 export const json = <Global extends GlobalState, Local>(
 	root : ComponentFromConfig<Global, Local>
 ) => (
@@ -54,20 +66,14 @@ export const json = <Global extends GlobalState, Local>(
 			local : state
 		});
 		const output : DocumentOutput = {
+			dependencies : new Set<string>([]),
 			js : [
-				"var converter = new showdown.Converter();",
-				"var adapters = {};",
-				"var events = {};",
-				"var listeners = [];",
-				`var global = ${JSON.stringify(state, null, "\t")};`,
+				`var global = ${JSON.stringify(state, null, "\t")}`
 			],
 			css : [],
 			html : [],
-			scripts : [
-				"https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js",
-				"https://cdnjs.cloudflare.com/ajax/libs/showdown/2.0.3/showdown.min.js"
-			],
-			cache : new Set()
+			scripts : [],
+			cache : new Set<string>([])
 		};
 		handle({
 			component,
@@ -76,6 +82,11 @@ export const json = <Global extends GlobalState, Local>(
 			output
 		});
 		output.js.push("bind(document.body, Local(global, 0));");
+		scripts.forEach(script => {
+			if(output.dependencies.has(script.dependency)) {
+				output.scripts.push(script.src);
+			}
+		});
 		return output;
 	};
 
@@ -335,6 +346,7 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 							global,
 							local : null,
 							output : {
+								dependencies : output.dependencies,
 								cache : output.cache,
 								css : output.css,
 								html : [],
@@ -376,7 +388,7 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 			output.cache.add(id);
 			output.js.push("function onBack() {");
 			(value as Array<(config : any) => ProgrammingLanguage>).forEach((callback) => {
-				const generated = code(callback, new Set([]), {
+				const generated = code(callback, output.dependencies, {
 					global,
 					local,
 					moment,
@@ -424,7 +436,7 @@ window.onpopstate = function() {
 			output.cache.add(id);
 			output.js.push(`setEvent("${component.id}", "${name}", function(local, index, event) {`);
 			(value as Array<(config : any) => ProgrammingLanguage>).forEach((callback) => {
-				const generated = code(callback, new Set([]), {
+				const generated = code(callback, output.dependencies, {
 					global,
 					local,
 					moment,
@@ -438,12 +450,13 @@ window.onpopstate = function() {
 	}
 	case "funcs":
 		(value as Array<ProgrammingLanguage>).forEach((func) => {
-			const generated = code(() => func, new Set([]), {
+			const generated = code(() => func, output.dependencies, {
 				global,
 				local,
 				moment,
 				speech
 			});
+			getDependencies(generated, output.dependencies);
 			output.js.push(javascript(generated, "\t"));
 		});
 		return;
@@ -501,7 +514,7 @@ const handle = <Global extends GlobalState, Local>({
 
 	if(component.observe && local) {
 		component.observe.forEach(callback => {
-			const generated = code(callback, new Set([]));
+			const generated = code(callback, output.dependencies);
 			execute(generated, {
 				global,
 				local,
@@ -558,10 +571,62 @@ const handle = <Global extends GlobalState, Local>({
 	return output;
 };
 
+const library = (dependencies : Set<string>) => [{
+	dependency : "event.markdown",
+	code : "var converter = new showdown.Converter();"
+}, {
+	dependency : "socket",
+	code : `
+var socket = (function () {
+	var socket = io();
+	return {
+		on : function(name, callback) {
+			socket.on(name, function(data) {
+				callback({ data })
+				update();
+			})
+		}
+	};
+})();`
+}, {
+	dependency : "speech",
+	code : "var speech = {};"
+}, {
+	dependency : "speech.listen",
+	code : `
+var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+speech.listen = function(config) {
+	recognition.onresult = function(e) {
+		config.onResult({
+			results: Array.from(e.results).map(function(array) {
+				return Array.from(array).map(function(alternative) {
+					return {
+						isFinal : array.isFinal,
+						confidence: alternative.confidence,
+						transcript: alternative.transcript
+					}
+				});
+			}),
+		});
+		update();
+	};
+	recognition.continuous = config.continuous || false;
+	recognition.lang = config.lang || "en-US";
+	recognition.interimResults = config.interimResults || false;
+	recognition.maxAlternatives = config.maxAlternatives || 1;
+	recognition.start();
+};`
+}].filter(
+	it => dependencies.has(it.dependency)
+).map(
+	it => it.code.trim()
+).join("\n");
+
 const document = ({
 	scripts,
 	html,
-	js
+	js,
+	dependencies
 } : DocumentOutput) => `<!doctype html>
     <html>
     <head>
@@ -596,45 +661,12 @@ select, input, button, html, body, p, span {
     <body>
         ${html.join("")}
         <script>
-${javascriptBundle()}
+${javascriptBundle(dependencies)}
+${library(dependencies)}
+var adapters = {};
+var events = {};
+var listeners = [];
 var isMobile = /mobi/i.test(window.navigator.userAgent);
-/*
-var socket = (function () {
-    var socket = io();
-    return {
-        on : function(name, callback) {
-            socket.on(name, function(data) {
-                callback({ data })
-                update();
-            })
-        }
-    };
-})();
-*/
-var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-var speech = {
-	listen : function(config) {
-		recognition.onresult = function(e) {
-			config.onResult({
-				results: Array.from(e.results).map(function(array) {
-					return Array.from(array).map(function(alternative) {
-						return {
-							isFinal : array.isFinal,
-							confidence: alternative.confidence,
-							transcript: alternative.transcript
-						}
-					});
-				}),
-			});
-			update();
-		};
-		recognition.continuous = config.continuous || false;
-		recognition.lang = config.lang || "en-US";
-		recognition.interimResults = config.interimResults || false;
-		recognition.maxAlternatives = config.maxAlternatives || 1;
-		recognition.start();
-	}
-};
 function Local(value, index) {
     return {
         value : value,
@@ -689,6 +721,7 @@ function Component(component) {
         set : function(target, key, value) {
             if(!(key in cache) || cache[key] !== value) {
                 cache[key] = value;
+				${ /* TODO : LOOK AT DEPENDENCIES */ "" }
                 switch(key) {
                     case "width":
                     case "height":

@@ -4,4 +4,5 @@ export type DocumentOutput = {
     css : string[]
     scripts : string[]
     cache : Set<string>
+    dependencies : Set<string>
 }
