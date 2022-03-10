@@ -20,6 +20,15 @@ const mkdir = (path) => {
 	});
 };
 
+const rmdir = (path) => {
+	return new Promise(resolve => {
+		fs.rm(path, {
+			recursive : true,
+			force : true
+		}, () => resolve());
+	});
+};
+
 const writeFile = (file, data) => {
 	return new Promise((resolve) => {
 		fs.writeFile(file, data, "utf-8", () => resolve());
@@ -55,8 +64,13 @@ yargs.scriptName("polygraphic-web")
 					state
 				}
 			} = require(dep);
-			const output = html(App)(state);
-			writeFile(path.join(argv.o, "index.html"), output);
+			const output = await html(App, "index")(state);
+			await rmdir(argv.o);
+			await mkdir(argv.o);
+			await Object.keys(output).reduce(async (promise, key) => {
+				await promise;
+				await writeFile(path.join(argv.o, key), output[key]);
+			}, Promise.resolve());
 		} catch(e) {
 			console.log("ERROR", e, JSON.stringify(e, null, "\t"));
 		}

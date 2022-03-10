@@ -16,10 +16,21 @@ import {
 	props,
 	getDependencies
 } from "polygraphic";
-import { DocumentOutput } from "./types";
+import { DocumentOutput, Manifest } from "./types";
 export * from "./types";
 import moment from "moment";
 import showdown from "showdown";
+import path from "path";
+import fs from "fs";
+
+const readFile = (path : string) => {
+	return new Promise<string>((resolve, reject) => {
+		fs.readFile(path, "utf-8", (err: Error | null, data: string) => {
+			if(err) reject(err);
+			else resolve(data);
+		});
+	});
+};
 
 const converter = new showdown.Converter();
 
@@ -33,10 +44,47 @@ const speech = {
 };
 
 export const html = <Global extends GlobalState, Local>(
-	root : ComponentFromConfig<Global, Local>
-) => (
+	root : ComponentFromConfig<Global, Local>,
+	name : string
+) => async (
 		state : Global & Local
-	) => document(json(root)(state));
+	) : Promise<Record<string, string>> => {
+		const result = json(root, name)(state);
+		return {
+			[`${name}.html`] : document(result),
+			[`${name}.css`] : `@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
+html, body {
+	display : flex;
+	width : 100%;
+	min-height : 100%;
+	font-size : 16px;
+}
+* { 
+	box-sizing: border-box;
+}
+button {
+	cursor : pointer;
+}
+select, input, button, html, body, p, span {
+	display : inline-flex;
+	font-family: 'Roboto', sans-serif;
+	text-align : start;
+	background : transparent;
+	margin : 0;
+	padding : 0;
+	border : 0;
+	font-size : 16px;
+}`,
+			[`${name}.js`] : result.js.join("\n"),
+			...(await result.images.reduce(async (promise, image) => {
+				const images = await promise;
+				return {
+					...images,
+					[path.basename(image)] : await readFile(image.slice("file://".length))
+				};
+			}, {}))
+		};
+	};
 
 const scripts = [{
 	dependency : "moment",
@@ -50,7 +98,8 @@ const scripts = [{
 }];
 
 export const json = <Global extends GlobalState, Local>(
-	root : ComponentFromConfig<Global, Local>
+	root : ComponentFromConfig<Global, Local>,
+	name : string
 ) => (
 		state : Global & Local
 	) : DocumentOutput => { 
@@ -66,14 +115,14 @@ export const json = <Global extends GlobalState, Local>(
 			local : state
 		});
 		const output : DocumentOutput = {
+			name,
 			dependencies : new Set<string>([]),
-			js : [
-				`var global = ${JSON.stringify(state, null, "\t")}`
-			],
+			js : [],
 			css : [],
 			html : [],
 			scripts : [],
-			cache : new Set<string>([])
+			cache : new Set<string>([]),
+			images : []
 		};
 		handle({
 			component,
@@ -81,6 +130,311 @@ export const json = <Global extends GlobalState, Local>(
 			local : state,
 			output
 		});
+		output.js.unshift(`${javascriptBundle(output.dependencies)}
+${library(output.dependencies)}
+var global = ${JSON.stringify(state, null, "\t")};
+${output.manifest ? `global = localStorage.${name} ? JSON.parse(localStorage.${name}) : global;` : ""}
+var adapters = {};
+var events = {};
+var listeners = [];
+var isMobile = /mobi/i.test(window.navigator.userAgent);
+function Local(value, index) {
+	return {
+		value : value,
+		index : index
+	};
+}
+function $(html) {
+	var div = document.createElement("div");
+	div.innerHTML = html;
+	var child = div.children[0];
+	return function() {
+		return child.cloneNode(true);
+	};
+}
+function setEvent(id, name, callback) {
+	events[id] = events[id] || {};
+	events[id][name] = callback;
+}
+
+function numberToMeasurement(input) {
+	if(input === null || input === undefined) {
+		return "";
+	}
+	if(0 < input && input < 1) {
+		return (input * 100) + "%";
+	} else if(input === ${WRAP}) {
+		return "auto";
+	} else if(input === ${MATCH}) {
+		return "100%";
+	} else {
+		return input + "px";
+	}
+}
+var protect = (function() {
+	var last = 0;
+	return function(callback) {
+		var now = Date.now();
+		if(now - last >= 300) {
+			last = now;
+			callback();
+		}
+	};
+})();
+function Component(component) {
+	var cache = {};
+	return new Proxy(component, {
+		get : function(target, key) {
+			if(key === "isMounted") {
+				return document.body.contains(component);
+			}
+		},
+		set : function(target, key, value) {
+			if(!(key in cache) || cache[key] !== value) {
+				cache[key] = value;
+				${ /* TODO : LOOK AT DEPENDENCIES */ "" }
+				switch(key) {
+					case "width":
+					case "height":
+						target.style[key] = numberToMeasurement(value);
+						return;
+					case "focus":
+						windowSetTimeout(function() {
+							target.focus();
+							target.setSelectionRange(0, target.value.length);
+						}, 300);
+						return;
+					case "enabled":
+						target.disabled = !value;
+						return;
+					case "placeholder":
+						target.placeholder = value;
+						return;
+					case "animation":
+						if(!value) return;
+						target.style.willChange = "opacity, transform";
+						function render() {
+							const progress = Math.max(Math.min((Date.now() - value.start) / 300, 1), 0)
+							if(progress < 1) {
+								requestAnimationFrame(render);
+							} else {
+								windowSetTimeout(function() {
+									target.style.willChange = "auto";
+								})
+							}
+							if(value.direction === "in" && value.name === "right") {
+								target.style.transform = "translateX(" + (100 - 100 * progress) + "%)";
+							}
+							if(value.direction === "out" && value.name === "right") {
+								target.style.transform = "translateX(" + (100 * progress) + "%)";
+							}
+							if(value.direction === "in" && value.name === "left") {
+								target.style.transform = "translateX(" + (-100 + 100 * progress) + "%)";
+							}
+							if(value.direction === "out" && value.name === "left") {
+								target.style.transform = "translateX(" + (-100 * progress) + "%)";
+							}
+							if(value.direction === "in" && value.name === "opacity") {
+								target.style.opacity = progress;
+							}
+							if(value.direction === "out" && value.name === "opacity") {
+								target.style.opacity = (1 - progress);
+							}
+						}
+						render();
+						return;
+					case "value":
+						if(target.type === "date") {
+							if(value === -1) {
+								target.valueAsDate = null;
+							} else {
+								var local = new Date(value);
+								target.valueAsDate = new Date(Date.UTC(local.getFullYear(), local.getMonth(), local.getDate()));
+							}
+						} else if(target.type === "checkbox") {
+							target.checked = value;
+						} else {
+							target.value = value;
+						}
+						return;
+					case "text":
+						target.innerText = value;
+						return;
+					case "data":
+						if(!cache.prevData) {
+							target.innerHTML = "";
+						}
+						var prev = cache.prevData || [];
+						if(!value) {
+							return;
+						}
+						var curr = value.map(function(it) {
+							return "id" in it ? it.id : it.key;
+						});
+						// REMOVE
+						var removed = [];
+						for(var i = prev.length - 1; i >= 0; i--) {
+							if(!curr.includes(prev[i])) {
+								prev.splice(i, 1);
+								removed.push(target.removeChild(target.children[i]));
+							}
+						}
+						// ADD
+						for(var i = 0; i < curr.length; i++) {
+							if(!prev.includes(curr[i])) {
+								var item = value[i];
+								// TODO : ATTEMPT TO REUSE REMOVED COMPONENTS
+								var child = adapters[target.dataset.id + "_" + item.adapter]();
+								bind(child, Local(item, i))
+								if(i < target.children.length) {
+									target.insertBefore(child, target.children[i]);
+								} else {
+									target.appendChild(child);
+								}
+							}
+						}
+						// MOVE / UPDATE
+						for(var i = 0; i < target.children.length; i++) {
+							target.children[i].__local__.value = value[i];
+							target.children[i].__local__.index = i;
+						}
+						cache.prevData = curr;
+						target.value = cache.value;
+						return;
+					case "background":
+						target.style.background = value;
+						return;
+					case "visible":
+						target.style.display = value ? (target.style.flexDirection ? "flex" : "block") : "none";
+						return;
+					case "markdown":
+						target.innerHTML = converter.makeHtml(value);
+						return;
+				}
+			}
+		}
+	});
+}
+var windowSetTimeout = window.setTimeout;
+var setTimeout = (function() {
+	return function(callback, ms) {
+		return windowSetTimeout(function() {
+			callback();
+			update();
+		}, ms);
+	};
+})();
+var update = (function() {
+	var timeout;
+	return function() {
+		clearTimeout(timeout);
+		timeout = windowSetTimeout(function() {
+			listeners.forEach(function (listener) {
+				listener.callback(listener.local.value, listener.local.index, listener.component)
+			});        
+			listeners = listeners.filter(function(listener) {
+				return listener.component.isMounted;
+			});
+			${output.manifest ? `localStorage.${name} = JSON.stringify(global);` : ""}
+		});
+	}
+})();
+function bind(root, local) {
+	root.__local__ = local;
+	Array.from(root.querySelectorAll("[data-id]")).concat(root.dataset.id ? [root] : []).forEach(function(component) {
+		var toBind = events[component.dataset.id];
+		Object.keys(toBind).forEach(function(event) {
+			var callback = toBind[event];
+			if(event === "onDrop") {
+				function prevent(e) {
+					e.preventDefault();
+					e.stopPropagation();
+					e.cancelBubble = true;
+					return false;
+				};
+				component.ondragenter = prevent
+				component.ondragleave = prevent
+				component.ondragover = prevent
+				component.ondrop = function() {
+					callback(local.value, local.index);
+					update();
+				};
+			} else if(event === "onDragStart") {
+				component.ondragstart = function() {
+					callback(local.value, local.index);
+					update();
+				};
+			} else if(event === "onDragEnd") {
+				component.ondragend = function() {
+					callback(local.value, local.index);
+					update();
+				};
+			} else if(event === "onChange") {
+				if(component.tagName.toLowerCase() === "select") {
+					component.onchange = function() {					
+						const value = this.value;
+						protect(function() {
+							callback(local.value, local.index, value);
+							update();
+						});
+					};
+				} else if(component.type === "checkbox") {
+					component.onclick = function() {					
+						const checked = this.checked;
+						protect(function() {
+							callback(local.value, local.index, checked);
+							update();
+						});
+					};
+				} else if(component.type === "date") {
+					component.oninput = function() {					
+						var value = this.valueAsDate;
+						if(value) {
+							var date = new Date(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate());
+							callback(local.value, local.index, date.getTime());
+						} else {
+							callback(local.value, local.index, -1);
+						}
+						update();
+					};
+				} else {
+					component.oninput = function() {					
+						callback(local.value, local.index, this.value);
+						update();
+					};
+				}
+			} else if(event === "onClick") {
+				component.onclick = function() {
+					protect(function() {
+						callback(local.value, local.index/*,event*/);
+						update();
+					})
+				};
+			} else if(event === "onEnter") {
+				component.onkeypress = function(e) {					
+					if(e.which === 13) {
+						protect(function() {
+							callback(local.value, local.index);
+							update();
+						});
+					}
+				};
+			} else if(event === "observe") {
+				var wrapped = Component(component);
+				listeners.push({
+					component : wrapped,
+					callback : callback,
+					local : local,
+					id : component.dataset.id
+				});
+				callback(local.value, local.index, wrapped)
+			} else if(event === "onInit") {
+				callback(local.value, local.index);
+				update();
+			}
+		});
+	});
+}`);
 		output.js.push("bind(document.body, Local(global, 0));");
 		scripts.forEach(script => {
 			if(output.dependencies.has(script.dependency)) {
@@ -272,6 +626,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	case "opacity":
 		props.style.opacity = `${value}`;
 		return props;
+	case "manifest":
 	case "markdown":
 	case "onDragEnd":
 	case "onDrop":
@@ -346,12 +701,8 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 							global,
 							local : null,
 							output : {
-								dependencies : output.dependencies,
-								cache : output.cache,
-								css : output.css,
-								html : [],
-								scripts : [],
-								js : output.js
+								...output,
+								html : []
 							}
 						});
 						output.js.push(`adapters.${key} = $('${adapterOutput.html.join("")}')`);
@@ -463,6 +814,12 @@ window.onpopstate = function() {
 	case "markdown":
 		output.html.push(converter.makeHtml(value?.toString() ?? ""));
 		return props;
+	case "manifest":
+		output.manifest = value as Manifest;
+		return props;
+	case "src":
+		output.images.push(value as string);
+		return props;
 	case "opacity":
 	case "visible":
 	case "padding":
@@ -480,7 +837,6 @@ window.onpopstate = function() {
 	case "placeholder":
 	case "enabled":
 	case "focus":
-	case "src":
 	case "size":
 	case "color":
 	case "animation":
@@ -623,349 +979,101 @@ speech.listen = function(config) {
 ).join("\n");
 
 const document = ({
+	name,
 	scripts,
 	html,
-	js,
-	dependencies
+	js
 } : DocumentOutput) => `<!doctype html>
     <html>
     <head>
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<style>
-@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
-html, body {
-	display : flex;
-	width : 100%;
-	min-height : 100%;
-	font-size : 16px;
-}
-* { 
-	box-sizing: border-box;
-}
-button {
-	cursor : pointer;
-}
-select, input, button, html, body, p, span {
-	display : inline-flex;
-	font-family: 'Roboto', sans-serif;
-	text-align : start;
-	background : transparent;
-	margin : 0;
-	padding : 0;
-	border : 0;
-	font-size : 16px;
-}
-		</style>
+		<link href="./${name}.css" rel="stylesheet" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+	</head>
+	<body>
+		${html.join("")}
 		${scripts.map(src => `<script src="${src}"></script>`).join("")}
-    </head>
-    <body>
-        ${html.join("")}
-        <script>
-${javascriptBundle(dependencies)}
-${library(dependencies)}
-var adapters = {};
-var events = {};
-var listeners = [];
-var isMobile = /mobi/i.test(window.navigator.userAgent);
-function Local(value, index) {
-    return {
-        value : value,
-        index : index
-    };
-}
-function $(html) {
-    var div = document.createElement("div");
-    div.innerHTML = html;
-    var child = div.children[0];
-    return function() {
-        return child.cloneNode(true);
-    };
-}
-function setEvent(id, name, callback) {
-    events[id] = events[id] || {};
-    events[id][name] = callback;
-}
-
-function numberToMeasurement(input) {
-    if(input === null || input === undefined) {
-        return "";
-    }
-    if(0 < input && input < 1) {
-        return (input * 100) + "%";
-    } else if(input === ${WRAP}) {
-        return "auto";
-    } else if(input === ${MATCH}) {
-        return "100%";
-    } else {
-        return input + "px";
-    }
-}
-var protect = (function() {
-	var last = 0;
-	return function(callback) {
-		var now = Date.now();
-		if(now - last >= 300) {
-			last = now;
-			callback();
-		}
-	};
-})();
-function Component(component) {
-    var cache = {};
-    return new Proxy(component, {
-        get : function(target, key) {
-            if(key === "isMounted") {
-                return document.body.contains(component);
-            }
-        },
-        set : function(target, key, value) {
-            if(!(key in cache) || cache[key] !== value) {
-                cache[key] = value;
-				${ /* TODO : LOOK AT DEPENDENCIES */ "" }
-                switch(key) {
-                    case "width":
-                    case "height":
-                        target.style[key] = numberToMeasurement(value);
-                        return;
-                    case "focus":
-						windowSetTimeout(function() {
-							target.focus();
-							target.setSelectionRange(0, target.value.length);
-						}, 300);
-                        return;
-                    case "enabled":
-                        target.disabled = !value;
-                        return;
-                    case "placeholder":
-                        target.placeholder = value;
-                        return;
-					case "animation":
-						if(!value) return;
-						target.style.willChange = "opacity, transform";
-						function render() {
-							const progress = Math.max(Math.min((Date.now() - value.start) / 300, 1), 0)
-							if(progress < 1) {
-								requestAnimationFrame(render);
-							} else {
-								windowSetTimeout(function() {
-									target.style.willChange = "auto";
-								})
-							}
-							if(value.direction === "in" && value.name === "right") {
-								target.style.transform = "translateX(" + (100 - 100 * progress) + "%)";
-							}
-							if(value.direction === "out" && value.name === "right") {
-								target.style.transform = "translateX(" + (100 * progress) + "%)";
-							}
-							if(value.direction === "in" && value.name === "left") {
-								target.style.transform = "translateX(" + (-100 + 100 * progress) + "%)";
-							}
-							if(value.direction === "out" && value.name === "left") {
-								target.style.transform = "translateX(" + (-100 * progress) + "%)";
-							}
-							if(value.direction === "in" && value.name === "opacity") {
-								target.style.opacity = progress;
-							}
-							if(value.direction === "out" && value.name === "opacity") {
-								target.style.opacity = (1 - progress);
-							}
-						}
-						render();
-						return;
-                    case "value":
-						if(target.type === "date") {
-							if(value === -1) {
-								target.valueAsDate = null;
-							} else {
-								var local = new Date(value);
-								target.valueAsDate = new Date(Date.UTC(local.getFullYear(), local.getMonth(), local.getDate()));
-							}
-						} else if(target.type === "checkbox") {
-							target.checked = value;
-						} else {
-							target.value = value;
-						}
-                        return;
-                    case "text":
-                        target.innerText = value;
-                        return;
-                    case "data":
-                        if(!cache.prevData) {
-                            target.innerHTML = "";
-                        }
-                        var prev = cache.prevData || [];
-						if(!value) {
-							return;
-						}
-                        var curr = value.map(function(it) {
-                            return "id" in it ? it.id : it.key;
-                        });
-                        // REMOVE
-                        var removed = [];
-                        for(var i = prev.length - 1; i >= 0; i--) {
-                            if(!curr.includes(prev[i])) {
-                                prev.splice(i, 1);
-                                removed.push(target.removeChild(target.children[i]));
-                            }
-                        }
-                        // ADD
-                        for(var i = 0; i < curr.length; i++) {
-                            if(!prev.includes(curr[i])) {
-                                var item = value[i];
-                                // TODO : ATTEMPT TO REUSE REMOVED COMPONENTS
-                                var child = adapters[target.dataset.id + "_" + item.adapter]();
-                                bind(child, Local(item, i))
-                                if(i < target.children.length) {
-                                    target.insertBefore(child, target.children[i]);
-                                } else {
-                                    target.appendChild(child);
-                                }
-                            }
-                        }
-                        // MOVE / UPDATE
-                        for(var i = 0; i < target.children.length; i++) {
-                            target.children[i].__local__.value = value[i];
-                            target.children[i].__local__.index = i;
-                        }
-                        cache.prevData = curr;
-                        target.value = cache.value;
-                        return;
-                    case "background":
-                        target.style.background = value;
-                        return;
-                    case "visible":
-                        target.style.display = value ? (target.style.flexDirection ? "flex" : "block") : "none";
-                        return;
-					case "markdown":
-						target.innerHTML = converter.makeHtml(value);
-						return;
-                }
-            }
-        }
-    });
-}
-var windowSetTimeout = window.setTimeout;
-var setTimeout = (function() {
-	return function(callback, ms) {
-		return windowSetTimeout(function() {
-			callback();
-			update();
-		}, ms);
-	};
-})();
-var update = (function() {
-    var timeout;
-    return function() {
-        clearTimeout(timeout);
-        timeout = windowSetTimeout(function() {
-            listeners.forEach(function (listener) {
-                listener.callback(listener.local.value, listener.local.index, listener.component)
-            });        
-            listeners = listeners.filter(function(listener) {
-                return listener.component.isMounted;
-            });
-        });
-    }
-})();
-function bind(root, local) {
-    root.__local__ = local;
-    Array.from(root.querySelectorAll("[data-id]")).concat(root.dataset.id ? [root] : []).forEach(function(component) {
-        var toBind = events[component.dataset.id];
-        Object.keys(toBind).forEach(function(event) {
-            var callback = toBind[event];
-            if(event === "onDrop") {
-                function prevent(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.cancelBubble = true;
-                    return false;
-                };
-                component.ondragenter = prevent
-                component.ondragleave = prevent
-                component.ondragover = prevent
-                component.ondrop = function() {
-					callback(local.value, local.index);
-					update();
-                };
-            } else if(event === "onDragStart") {
-                component.ondragstart = function() {
-					callback(local.value, local.index);
-					update();
-                };
-            } else if(event === "onDragEnd") {
-                component.ondragend = function() {
-					callback(local.value, local.index);
-					update();
-                };
-            } else if(event === "onChange") {
-				if(component.tagName.toLowerCase() === "select") {
-					component.onchange = function() {					
-						const value = this.value;
-						protect(function() {
-							callback(local.value, local.index, value);
-							update();
-						});
-					};
-				} else if(component.type === "checkbox") {
-					component.onclick = function() {					
-						const checked = this.checked;
-						protect(function() {
-							callback(local.value, local.index, checked);
-							update();
-						});
-					};
-				} else if(component.type === "date") {
-					component.oninput = function() {					
-						var value = this.valueAsDate;
-						if(value) {
-							var date = new Date(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate());
-							callback(local.value, local.index, date.getTime());
-						} else {
-							callback(local.value, local.index, -1);
-						}
-						update();
-					};
-				} else {
-					component.oninput = function() {					
-						callback(local.value, local.index, this.value);
-						update();
-					};
-				}
-            } else if(event === "onClick") {
-                component.onclick = function() {
-					protect(function() {
-						callback(local.value, local.index/*,event*/);
-						update();
-					})
-                };
-            } else if(event === "onEnter") {
-                component.onkeypress = function(e) {					
-					if(e.which === 13) {
-						protect(function() {
-							callback(local.value, local.index);
-							update();
-						});
-					}
-                };
-            } else if(event === "observe") {
-                var wrapped = Component(component);
-                listeners.push({
-                    component : wrapped,
-                    callback : callback,
-                    local : local,
-					id : component.dataset.id
-                });
-                callback(local.value, local.index, wrapped)
-            } else if(event === "onInit") {
-                callback(local.value, local.index);
-                update();
-            }
-        });
-    });
-}
-        </script>
-        <script>
-${js.join("\n")}
-        </script>
-    </body>
+		${js.length ? `<script src="./${name}.js"></script>` : ""}
+	</body>
 </html>`;
+
+
+/*
+        var cacheName = "${name.path}";
+self.addEventListener("install", function(event) {
+	event.waitUntil(
+		caches.open(cacheName).then(function(cache) {
+			return cache.addAll([
+				${Array.from(new Set(files.map(it => `"${redirectName(it.name)}"`))).join(",")}
+			]);
+		})
+	);
+	self.skipWaiting();
+});
+self.addEventListener("activate", function(event) {
+	event.waitUntil(
+		caches.keys().then(function(cacheNames) {
+			return Promise.all(cacheNames.map(function(cacheName) {
+				return caches.delete(cacheName);
+			}));
+		})
+	);
+});
+self.addEventListener("fetch", function(event) {
+	event.respondWith(
+		caches.open(cacheName).then(function(cache) {
+			return fetch(event.request).then(function(response) {
+				if(event.request.method.toLowerCase() === "get") {
+					cache.put(event.request, response.clone());
+				}
+				return response;
+			}).catch(function() {
+				return cache.match(event.request);
+			})
+		})
+	);
+});
+if ("serviceWorker" in navigator) {
+	window.addEventListener("load", function() {
+		navigator.serviceWorker.register("${name.path}-service-worker.js", {
+			scope: "/${name.path}"
+		}).then(function(registration) {
+			console.log("Registration successful, scope is:", registration.scope);
+		}).catch(function(error) {
+			console.log("Service worker registration failed, error:", error);
+		});
+	});
+}
+        */
+/*
+        head["title"] = {
+            key: "title",
+            name: "title",
+            children: manifest.name,				
+        };
+        head["meta:description"] = {
+            key: "meta:description",
+            name: "meta",
+            props: {
+                name: "description",
+                content: manifest.description
+            }
+        };
+        head["meta:theme-color"] = {
+            key: "meta:theme-color",
+            name: "meta",
+            props: {
+                name: "theme-color",
+                content: manifest.theme_color
+            }
+        };
+        head["link:apple-touch-icon"] = {
+            key: "link:apple-touch-icon",
+            name: "link",
+            props: {
+                rel: "apple-touch-icon",
+                href: `${name.pattern}.apple-touch-icon.png`
+            }
+        };
+
+        // 48, 72, 96, 128, 192, 256, 512
+        */
