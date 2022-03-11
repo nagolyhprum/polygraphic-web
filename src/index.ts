@@ -22,6 +22,7 @@ import moment from "moment";
 import showdown from "showdown";
 import path from "path";
 import fs from "fs";
+import { createCanvas, loadImage } from "canvas";
 
 const readFile = (path : string) => {
 	return new Promise<string>((resolve, reject) => {
@@ -30,6 +31,35 @@ const readFile = (path : string) => {
 			else resolve(data);
 		});
 	});
+};
+
+const MANIFEST_ICON_SIZES = [48, 72, 96, 128, 192, 256, 512];
+
+const createImage = async ({
+	icon,
+	background,
+	size,
+	percent
+} : {
+	icon : string
+	background : string
+	size : number
+	percent : number
+}) : Promise<Buffer> => {
+	const image = await loadImage(icon);
+	const canvas = createCanvas(size, size);
+	const context = canvas.getContext("2d");
+	context.fillStyle = background;
+	context.fillRect(0, 0, size, size);
+	const resize = size / Math.min(image.width, image.height) * percent;
+	const width = image.width * resize;
+	const height = image.height * resize;
+	const x = size / 2 - width / 2;
+	const y = size / 2 - height / 2;
+	image.width = width;
+	image.height = height;
+	context.drawImage(image, x, y, width, height);
+	return canvas.toBuffer("image/jpeg");
 };
 
 const converter = new showdown.Converter();
@@ -48,9 +78,9 @@ export const html = <Global extends GlobalState, Local>(
 	name : string
 ) => async (
 		state : Global & Local
-	) : Promise<Record<string, string>> => {
+	) : Promise<Record<string, string | Buffer>> => {
 		const result = json(root, name)(state);
-		const files : Record<string, string> = {			
+		const files : Record<string, string | Buffer> = {			
 			[`${name}.html`] : document(result),
 			[`${name}.css`] : `@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
 html, body {
@@ -85,14 +115,37 @@ select, input, button, html, body, p, span {
 			}, {}))
 		};
 		if(result.manifest) {
-			const icon = path.basename(result.manifest.icons);
-			// const sizes = [48, 72, 96, 128, 192, 256, 512];
+			const manifest = result.manifest;
+			const icon = manifest.icons;
+			files[`${name}-mask.jpeg`] = await createImage({
+				background : manifest.background_color,
+				icon : icon.src,
+				percent : icon.percent,
+				size : 1024
+			});
+			files[`${name}-ati.jpeg`] = await createImage({
+				background : manifest.background_color,
+				icon : icon.src,
+				percent : icon.percent,
+				size : 180
+			});
+			await Promise.all(MANIFEST_ICON_SIZES.map(async size => {
+				files[`${name}-${size}x${size}.jpeg`] = await createImage({
+					background : manifest.background_color,
+					icon : icon.src,
+					percent : icon.percent,
+					size
+				});
+			}));
 			files[`${name}-manifest.json`] = JSON.stringify({
-				...result.manifest,
+				...manifest,
 				icons : [{
-					sizes : "any",
-					src : icon
-				}]
+					src : `${name}-mask.jpeg`,
+					purpose : "maskable"
+				}, ...MANIFEST_ICON_SIZES.map(size => ({
+					sizes : `${size}x${size}`,
+					src : `${name}-${size}x${size}.jpeg`
+				}))]
 			}, null, "\t");
 			files[`${name}-service-worker.js`] = `
 var cacheName = "${name}";
@@ -100,7 +153,7 @@ self.addEventListener("install", function(event) {
 	event.waitUntil(
 		caches.open(cacheName).then(function(cache) {
 			return cache.addAll([
-				"${result.manifest.start_url}", ${Object.keys(files).map(it => `"${it}"`).join(",")}
+				"${manifest.start_url}", ${Object.keys(files).map(it => `"${it}"`).join(",")}
 			]);
 		})
 	);
@@ -1050,13 +1103,13 @@ const document = ({
 	js,
 	manifest
 } : DocumentOutput) => `<!doctype html>
-    <html>
+    <html lang="en">
     <head>
 		${manifest ? `
 			<title>${manifest.name}</title>
 			<meta name="description" content="${manifest.description}" />
 			<meta name="theme-color" content="${manifest.theme_color}" />
-			<link rel="apple-touch-icon" href="${path.basename(manifest.icons)}" />
+			<link rel="apple-touch-icon" href="${name}-ati.jpeg" />
 			<link rel="manifest" href="./${name}-manifest.json" />
 		` : ""}
 		<link href="./${name}.css" rel="stylesheet" />
