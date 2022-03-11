@@ -45,6 +45,6 @@
     "typescript": "^4.6.2"
   },
   "bin": {
-    "polygraphic-web": "./bin/polygraphic-web"
+    "polygraphic-web": "./bin/polygraphic-web.js"
   }
 }
