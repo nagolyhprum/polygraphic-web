@@ -658,7 +658,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		props.style["font-size"] = `${value}px`;
 		return props;
 	case "src":
-		props.src = value as string;
+		props.src = path.basename(value as string);
 		return props;
 	case "crossAxisAlignment":
 		if(component.name === "row") {
