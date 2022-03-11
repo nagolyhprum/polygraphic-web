@@ -687,6 +687,9 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	case "opacity":
 		props.style.opacity = `${value}`;
 		return props;
+	case "alt":
+		props.alt = `${value}`;
+		return props;
 	case "manifest":
 	case "markdown":
 	case "onDragEnd":
@@ -906,6 +909,7 @@ window.onpopstate = function() {
 	case "round":
 	case "clip":
 	case "shadow":
+	case "alt":
 		return;
 	}
 	failed(name);
