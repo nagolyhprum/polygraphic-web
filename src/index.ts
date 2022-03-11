@@ -50,7 +50,7 @@ export const html = <Global extends GlobalState, Local>(
 		state : Global & Local
 	) : Promise<Record<string, string>> => {
 		const result = json(root, name)(state);
-		return {
+		const files : Record<string, string> = {			
 			[`${name}.html`] : document(result),
 			[`${name}.css`] : `@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
 html, body {
@@ -84,6 +84,58 @@ select, input, button, html, body, p, span {
 				};
 			}, {}))
 		};
+		if(result.manifest) {
+			const icon = path.basename(result.manifest.icons);
+			files[`${name}-manifest.json`] = JSON.stringify({
+				...result.manifest,
+				icons : {
+					"48" : icon, 
+					"72" : icon, 
+					"96" : icon, 
+					"128" : icon, 
+					"192" : icon, 
+					"256" : icon, 
+					"512" : icon,
+				}
+			}, null, "\t");
+			files[`${name}-service-worker.js`] = `
+var cacheName = "${name}";
+self.addEventListener("install", function(event) {
+	event.waitUntil(
+		caches.open(cacheName).then(function(cache) {
+			return cache.addAll([
+				${Object.keys(files).map(it => `"${it}"`).join(",")}
+			]);
+		})
+	);
+	self.skipWaiting();
+});
+self.addEventListener("activate", function(event) {
+	event.waitUntil(
+		caches.keys().then(function(cacheNames) {
+			return Promise.all(cacheNames.map(function(cacheName) {
+				return caches.delete(cacheName);
+			}));
+		})
+	);
+});
+self.addEventListener("fetch", function(event) {
+	event.respondWith(
+		caches.open(cacheName).then(function(cache) {
+			return fetch(event.request).then(function(response) {
+				if(event.request.method.toLowerCase() === "get") {
+					cache.put(event.request, response.clone());
+				}
+				return response;
+			}).catch(function() {
+				return cache.match(event.request);
+			})
+		})
+	);
+});`;
+	
+		}
+		return files;
 	};
 
 const scripts = [{
@@ -97,7 +149,7 @@ const scripts = [{
 	src : "https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"
 }];
 
-export const json = <Global extends GlobalState, Local>(
+const json = <Global extends GlobalState, Local>(
 	root : ComponentFromConfig<Global, Local>,
 	name : string
 ) => (
@@ -132,6 +184,19 @@ export const json = <Global extends GlobalState, Local>(
 		});
 		output.js.unshift(`${javascriptBundle(output.dependencies)}
 ${library(output.dependencies)}
+${output.manifest ? `
+if ("serviceWorker" in navigator) {
+	window.addEventListener("load", function() {
+		navigator.serviceWorker.register("${name}-service-worker.js", {
+			scope: "${output.manifest.start_url}"
+		}).then(function(registration) {
+			console.log("Registration successful, scope is:", registration);
+		}).catch(function(error) {
+			console.log("Service worker registration failed, error:", error);
+		});
+	});
+}
+` : ""}
 var global = ${JSON.stringify(state, null, "\t")};
 ${output.manifest ? `global = localStorage.${name} ? JSON.parse(localStorage.${name}) : global;` : ""}
 var adapters = {};
@@ -982,10 +1047,18 @@ const document = ({
 	name,
 	scripts,
 	html,
-	js
+	js,
+	manifest
 } : DocumentOutput) => `<!doctype html>
     <html>
     <head>
+		${manifest ? `
+			<title>${manifest.name}</title>
+			<meta name="description" content="${manifest.description}" />
+			<meta name="theme-color" content="${manifest.theme_color}" />
+			<link rel="apple-touch-icon" href="${path.basename(manifest.icons)}" />
+			<link rel="manifest" href="./${name}-manifest.json" />
+		` : ""}
 		<link href="./${name}.css" rel="stylesheet" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 	</head>
@@ -995,85 +1068,3 @@ const document = ({
 		${js.length ? `<script src="./${name}.js"></script>` : ""}
 	</body>
 </html>`;
-
-
-/*
-        var cacheName = "${name.path}";
-self.addEventListener("install", function(event) {
-	event.waitUntil(
-		caches.open(cacheName).then(function(cache) {
-			return cache.addAll([
-				${Array.from(new Set(files.map(it => `"${redirectName(it.name)}"`))).join(",")}
-			]);
-		})
-	);
-	self.skipWaiting();
-});
-self.addEventListener("activate", function(event) {
-	event.waitUntil(
-		caches.keys().then(function(cacheNames) {
-			return Promise.all(cacheNames.map(function(cacheName) {
-				return caches.delete(cacheName);
-			}));
-		})
-	);
-});
-self.addEventListener("fetch", function(event) {
-	event.respondWith(
-		caches.open(cacheName).then(function(cache) {
-			return fetch(event.request).then(function(response) {
-				if(event.request.method.toLowerCase() === "get") {
-					cache.put(event.request, response.clone());
-				}
-				return response;
-			}).catch(function() {
-				return cache.match(event.request);
-			})
-		})
-	);
-});
-if ("serviceWorker" in navigator) {
-	window.addEventListener("load", function() {
-		navigator.serviceWorker.register("${name.path}-service-worker.js", {
-			scope: "/${name.path}"
-		}).then(function(registration) {
-			console.log("Registration successful, scope is:", registration.scope);
-		}).catch(function(error) {
-			console.log("Service worker registration failed, error:", error);
-		});
-	});
-}
-        */
-/*
-        head["title"] = {
-            key: "title",
-            name: "title",
-            children: manifest.name,				
-        };
-        head["meta:description"] = {
-            key: "meta:description",
-            name: "meta",
-            props: {
-                name: "description",
-                content: manifest.description
-            }
-        };
-        head["meta:theme-color"] = {
-            key: "meta:theme-color",
-            name: "meta",
-            props: {
-                name: "theme-color",
-                content: manifest.theme_color
-            }
-        };
-        head["link:apple-touch-icon"] = {
-            key: "link:apple-touch-icon",
-            name: "link",
-            props: {
-                rel: "apple-touch-icon",
-                href: `${name.pattern}.apple-touch-icon.png`
-            }
-        };
-
-        // 48, 72, 96, 128, 192, 256, 512
-        */
