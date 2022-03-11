@@ -86,17 +86,13 @@ select, input, button, html, body, p, span {
 		};
 		if(result.manifest) {
 			const icon = path.basename(result.manifest.icons);
+			// const sizes = [48, 72, 96, 128, 192, 256, 512];
 			files[`${name}-manifest.json`] = JSON.stringify({
 				...result.manifest,
-				icons : {
-					"48" : icon, 
-					"72" : icon, 
-					"96" : icon, 
-					"128" : icon, 
-					"192" : icon, 
-					"256" : icon, 
-					"512" : icon,
-				}
+				icons : [{
+					sizes : "any",
+					src : icon
+				}]
 			}, null, "\t");
 			files[`${name}-service-worker.js`] = `
 var cacheName = "${name}";
@@ -104,7 +100,7 @@ self.addEventListener("install", function(event) {
 	event.waitUntil(
 		caches.open(cacheName).then(function(cache) {
 			return cache.addAll([
-				${Object.keys(files).map(it => `"${it}"`).join(",")}
+				"${result.manifest.start_url}", ${Object.keys(files).map(it => `"${it}"`).join(",")}
 			]);
 		})
 	);
