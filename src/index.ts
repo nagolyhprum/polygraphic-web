@@ -59,7 +59,7 @@ const createImage = async ({
 	image.width = width;
 	image.height = height;
 	context.drawImage(image, x, y, width, height);
-	return canvas.toBuffer("image/jpeg");
+	return canvas.toBuffer("image/png");
 };
 
 const converter = new showdown.Converter();
@@ -118,20 +118,20 @@ select, input, button, html, body, p, span {
 			const manifest = result.manifest;
 			const icon = manifest.icons;
 			const src = icon.src.slice("file://".length);
-			files[`${name}-mask.jpeg`] = await createImage({
+			files[`${name}-mask.png`] = await createImage({
 				background : manifest.background_color,
 				icon : src,
 				percent : icon.percent,
 				size : 1024
 			});
-			files[`${name}-ati.jpeg`] = await createImage({
+			files[`${name}-ati.png`] = await createImage({
 				background : manifest.background_color,
 				icon : src,
 				percent : icon.percent,
 				size : 180
 			});
 			await Promise.all(MANIFEST_ICON_SIZES.map(async size => {
-				files[`${name}-${size}x${size}.jpeg`] = await createImage({
+				files[`${name}-${size}x${size}.png`] = await createImage({
 					background : manifest.background_color,
 					icon : src,
 					percent : icon.percent,
@@ -141,11 +141,11 @@ select, input, button, html, body, p, span {
 			files[`${name}-manifest.json`] = JSON.stringify({
 				...manifest,
 				icons : [{
-					src : `${name}-mask.jpeg`,
+					src : `${name}-mask.png`,
 					purpose : "maskable"
 				}, ...MANIFEST_ICON_SIZES.map(size => ({
 					sizes : `${size}x${size}`,
-					src : `${name}-${size}x${size}.jpeg`
+					src : `${name}-${size}x${size}.png`
 				}))]
 			}, null, "\t");
 			files[`${name}-service-worker.js`] = `
@@ -1110,7 +1110,7 @@ const document = ({
 			<title>${manifest.name}</title>
 			<meta name="description" content="${manifest.description}" />
 			<meta name="theme-color" content="${manifest.theme_color}" />
-			<link rel="apple-touch-icon" href="${name}-ati.jpeg" />
+			<link rel="apple-touch-icon" href="${name}-ati.png" />
 			<link rel="manifest" href="./${name}-manifest.json" />
 		` : ""}
 		<link href="./${name}.css" rel="stylesheet" />
