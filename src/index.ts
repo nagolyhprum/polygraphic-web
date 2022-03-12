@@ -117,22 +117,23 @@ select, input, button, html, body, p, span {
 		if(result.manifest) {
 			const manifest = result.manifest;
 			const icon = manifest.icons;
+			const src = icon.src.slice("file://".length);
 			files[`${name}-mask.jpeg`] = await createImage({
 				background : manifest.background_color,
-				icon : icon.src,
+				icon : src,
 				percent : icon.percent,
 				size : 1024
 			});
 			files[`${name}-ati.jpeg`] = await createImage({
 				background : manifest.background_color,
-				icon : icon.src,
+				icon : src,
 				percent : icon.percent,
 				size : 180
 			});
 			await Promise.all(MANIFEST_ICON_SIZES.map(async size => {
 				files[`${name}-${size}x${size}.jpeg`] = await createImage({
 					background : manifest.background_color,
-					icon : icon.src,
+					icon : src,
 					percent : icon.percent,
 					size
 				});
