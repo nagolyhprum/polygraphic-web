@@ -153,7 +153,7 @@ self.addEventListener("install", function(event) {
 	event.waitUntil(
 		caches.open(cacheName).then(function(cache) {
 			return cache.addAll([
-				"${manifest.start_url}", ${Object.keys(files).map(it => `"${it}"`).join(",")}
+				${Object.keys(files).map(it => `"${it}"`).join(",\n\t\t\t\t")}
 			]);
 		})
 	);
