@@ -868,20 +868,9 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 			output.js.push("}");
 			output.js.push(`history.pushState(null, document.title, location.href);
 window.onpopstate = function() {
-	if(onBack()) {
-		if(global.routes.length === 1) {
-			history.back();
-		} else {
-			global.routes[global.routes.length - 1].animation = {
-				direction : "out",
-				name : "right",
-				start : Date.now()
-			};
-			setTimeout(function() {
-				global.routes = global.routes.slice(0, -1);
-			}, 300);
-			history.pushState(null, document.title, location.href);
-		}
+	const shouldQuit = global.routes.length === 1;
+	if(onBack() && shouldQuit) {
+		history.back();
 	} else {
 		history.pushState(null, document.title, location.href);
 	}
