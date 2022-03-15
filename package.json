@@ -12,6 +12,9 @@
     "lint": "eslint",
     "test": "jest"
   },
+  "targets": {
+    "types": false
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nagolyhprum/polygraphic-web.git"
