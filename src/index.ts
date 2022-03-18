@@ -122,7 +122,7 @@ select, input, button, html, body, p, span {
 				background : manifest.background_color,
 				icon : src,
 				percent : icon.percent,
-				size : 1024
+				size : 192
 			});
 			files[`${name}-ati.png`] = await createImage({
 				background : manifest.background_color,
@@ -142,7 +142,8 @@ select, input, button, html, body, p, span {
 				...manifest,
 				icons : [{
 					src : `${name}-mask.png`,
-					purpose : "maskable"
+					purpose : "maskable",
+					sizes : "192x192"
 				}, ...MANIFEST_ICON_SIZES.map(size => ({
 					sizes : `${size}x${size}`,
 					src : `${name}-${size}x${size}.png`
