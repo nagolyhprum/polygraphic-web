@@ -124,6 +124,12 @@ select, input, button, html, body, p, span {
 				percent : icon.percent,
 				size : 192
 			});
+			files[`${name}-favicon.png`] = await createImage({
+				background : manifest.background_color,
+				icon : src,
+				percent : 1,
+				size : 16
+			});
 			files[`${name}-ati.png`] = await createImage({
 				background : manifest.background_color,
 				icon : src,
@@ -1100,6 +1106,7 @@ const document = ({
 			<title>${manifest.name}</title>
 			<meta name="description" content="${manifest.description}" />
 			<meta name="theme-color" content="${manifest.theme_color}" />
+			<link rel="icon" href="${name}-favicon.png" />
 			<link rel="apple-touch-icon" href="${name}-ati.png" />
 			<link rel="manifest" href="./${name}-manifest.json" />
 		` : ""}
