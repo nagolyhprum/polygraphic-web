@@ -1,5 +1,4 @@
 import { 
-	code, 
 	execute, 
 	javascript, 
 	GlobalState, 
@@ -14,7 +13,10 @@ import {
 	javascriptBundle,
 	Alignment,
 	props,
-	getDependencies
+	getDependencies,
+	compile,
+	stubs,
+	EventConfig
 } from "polygraphic";
 import { DocumentOutput, Manifest } from "./types";
 export * from "./types";
@@ -64,22 +66,13 @@ const createImage = async ({
 
 const converter = new showdown.Converter();
 
-const speech = {
-	listen : () => {
-		// DO NOTHING
-	},
-	speak : () => {
-		// DO NOTHING
-	}
-};
-
 export const html = <Global extends GlobalState, Local>(
 	root : ComponentFromConfig<Global, Local>,
 	name : string
 ) => async (
-		state : Global & Local
+		generateState : (config : (event : EventConfig<GlobalState, null, null>) => Global & Local) => Global & Local
 	) : Promise<Record<string, string | Buffer>> => {
-		const result = json(root, name)(state);
+		const result = json(root, name)(generateState);
 		const files : Record<string, string | Buffer> = {			
 			[`${name}.html`] : document(result),
 			[`${name}.css`] : `@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
@@ -210,8 +203,15 @@ const json = <Global extends GlobalState, Local>(
 	root : ComponentFromConfig<Global, Local>,
 	name : string
 ) => (
-		state : Global & Local
+		
+		generateState : (config : (event : EventConfig<GlobalState, null, null>) => Global & Local) => Global & Local
 	) : DocumentOutput => { 
+		const dependencies = new Set<string>([]);
+		const generated = compile(generateState as unknown as (config : any) => ProgrammingLanguage, dependencies);
+		const state = execute(generated, {
+			...stubs,
+			moment
+		}) as Global & Local;
 		state.ui = {};
 		state.features = ["speech.listen"];
 		const component = root({
@@ -254,7 +254,7 @@ if ("serviceWorker" in navigator) {
 	});
 }
 ` : ""}
-var global = ${JSON.stringify(state, null, "\t")};
+var global = ${javascript(generated, "")};
 ${output.manifest ? `global = localStorage.${name} ? JSON.parse(localStorage.${name}) : global;` : ""}
 var adapters = {};
 var events = {};
@@ -864,12 +864,7 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 			output.cache.add(id);
 			output.js.push("function onBack() {");
 			(value as Array<(config : any) => ProgrammingLanguage>).forEach((callback) => {
-				const generated = code(callback, output.dependencies, {
-					global,
-					local,
-					moment,
-					speech
-				});
+				const generated = compile(callback, output.dependencies);
 				output.js.push(javascript(generated, "\t"));
 			});
 			output.js.push("}");
@@ -901,12 +896,7 @@ window.onpopstate = function() {
 			output.cache.add(id);
 			output.js.push(`setEvent("${component.id}", "${name}", function(local, index, event) {`);
 			(value as Array<(config : any) => ProgrammingLanguage>).forEach((callback) => {
-				const generated = code(callback, output.dependencies, {
-					global,
-					local,
-					moment,
-					speech
-				});
+				const generated = compile(callback, output.dependencies);
 				output.js.push(javascript(generated, "\t"));
 			});
 			output.js.push("});");
@@ -915,12 +905,7 @@ window.onpopstate = function() {
 	}
 	case "funcs":
 		(value as Array<ProgrammingLanguage>).forEach((func) => {
-			const generated = code(() => func, output.dependencies, {
-				global,
-				local,
-				moment,
-				speech
-			});
+			const generated = compile(() => func, output.dependencies);
 			getDependencies(generated, output.dependencies);
 			output.js.push(javascript(generated, "\t"));
 		});
@@ -985,13 +970,13 @@ const handle = <Global extends GlobalState, Local>({
 
 	if(component.observe && local) {
 		component.observe.forEach(callback => {
-			const generated = code(callback, output.dependencies);
+			const generated = compile(callback as (config : any) => ProgrammingLanguage, output.dependencies);
 			execute(generated, {
 				global,
 				local,
 				event : component,
-				moment,
-				speech
+				...stubs,
+				moment
 			});
 		});
 	}
