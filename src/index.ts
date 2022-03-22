@@ -751,6 +751,11 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	case "alt":
 		props.alt = `${value}`;
 		return props;
+	case "clickable":
+		if(value === false) {
+			props.style["pointer-events"] = "none";
+		}
+		return props;
 	case "manifest":
 	case "markdown":
 	case "onDragEnd":
@@ -945,6 +950,7 @@ window.onpopstate = function() {
 	case "clip":
 	case "shadow":
 	case "alt":
+	case "clickable":
 		return;
 	}
 	failed(name);
