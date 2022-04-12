@@ -212,6 +212,7 @@ const json = <Global extends GlobalState, Local>(
 			...stubs,
 			moment
 		}) as Global & Local;
+		state.os = "web";
 		state.ui = {};
 		state.features = ["speech.listen"];
 		const component = root({
