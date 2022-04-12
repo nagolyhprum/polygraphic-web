@@ -212,7 +212,6 @@ const json = <Global extends GlobalState, Local>(
 			...stubs,
 			moment
 		}) as Global & Local;
-		state.os = "web";
 		state.ui = {};
 		state.features = ["speech.listen"];
 		const component = root({
@@ -256,6 +255,7 @@ if ("serviceWorker" in navigator) {
 }
 ` : ""}
 var global = ${javascript(generated, "")};
+global.os = "web";
 ${output.manifest ? `global = localStorage.${name} ? JSON.parse(localStorage.${name}) : global;` : ""}
 var adapters = {};
 var events = {};
