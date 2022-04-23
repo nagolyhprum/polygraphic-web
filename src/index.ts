@@ -26,6 +26,10 @@ import path from "path";
 import fs from "fs";
 import { createCanvas, loadImage } from "canvas";
 
+const getPath = (input : string) => {
+	return input;
+};
+
 const readFile = (path : string) => {
 	return new Promise<string>((resolve, reject) => {
 		fs.readFile(path, "utf-8", (err: Error | null, data: string) => {
@@ -103,14 +107,14 @@ select, input, button, html, body, p, span {
 				const images = await promise;
 				return {
 					...images,
-					[path.basename(image)] : await readFile(image.slice("file://".length))
+					[path.basename(image)] : await readFile(getPath(image))
 				};
 			}, {}))
 		};
 		if(result.manifest) {
 			const manifest = result.manifest;
 			const icon = manifest.icons;
-			const src = icon.src.slice("file://".length);
+			const src = getPath(icon.src);
 			files[`${name}-mask.png`] = await createImage({
 				background : manifest.background_color,
 				icon : src,
