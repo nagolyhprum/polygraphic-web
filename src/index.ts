@@ -798,6 +798,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	case "manifest":
 	case "markdown":
 	case "onDragEnd":
+	case "onResize":
 	case "onDrop":
 	case "onInit":
 	case "onClick":
@@ -934,6 +935,7 @@ window.onpopstate = function() {
 	case "onEnter":
 	case "onSelect":
 	case "onChange":
+	case "onResize":
 	case "onClick": {
 		const id = `${name}:${component.id}`;
 		if(!output.cache.has(id)) {
