@@ -104,11 +104,8 @@ select, input, button, html, body, p, span {
 }
 .progress {
 	display: inline-block;
-	width: 50px;
-	height: 50px;
-	border: 3px solid rgba(255,255,255,.3);
+	border: 3px solid transparent;
 	border-radius: 50%;
-	border-top-color: #fff;
 	animation: spin 1s ease-in-out infinite;
 	-webkit-animation: spin 1s ease-in-out infinite;
 }
@@ -745,7 +742,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		return props;
 	case "color":
 		if(component.name === "progress") {
-			props.style["border-color"] = value as string;
+			props.style["border-top-color"] = value as string;
 		} else {
 			props.style.color = value as string;
 		}
