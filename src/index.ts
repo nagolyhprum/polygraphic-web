@@ -27,7 +27,7 @@ import fs from "fs";
 import { createCanvas, loadImage } from "canvas";
 
 const getPath = (input : string) => {
-	return input;
+	return input.replace(/^file:\/\//, "");
 };
 
 const readFile = (path : string) => {
