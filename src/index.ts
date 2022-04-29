@@ -101,6 +101,22 @@ select, input, button, html, body, p, span {
 	padding : 0;
 	border : 0;
 	font-size : 16px;
+}
+.progress {
+	display: inline-block;
+	width: 50px;
+	height: 50px;
+	border: 3px solid rgba(255,255,255,.3);
+	border-radius: 50%;
+	border-top-color: #fff;
+	animation: spin 1s ease-in-out infinite;
+	-webkit-animation: spin 1s ease-in-out infinite;
+}
+@keyframes spin {
+	to { -webkit-transform: rotate(360deg); }
+}
+@-webkit-keyframes spin {
+	to { -webkit-transform: rotate(360deg); }
 }`,
 			[`${name}.js`] : result.js.join("\n"),
 			...(await result.images.reduce(async (promise, image) => {
@@ -472,7 +488,17 @@ function bind(root, local) {
 		var toBind = events[component.dataset.id];
 		Object.keys(toBind).forEach(function(event) {
 			var callback = toBind[event];
-			if(event === "onDrop") {
+			if(event === "onResize") {
+				const observer = new ResizeObserver(function(entries) {
+					const rect = component.getBoundingClientRect();
+					callback(local.value, local.index, {
+						width: rect.width,
+						height: rect.height,
+					});
+					update();
+				});
+				observer.observe(component);
+			} else if(event === "onDrop") {
 				function prevent(e) {
 					e.preventDefault();
 					e.stopPropagation();
@@ -579,7 +605,7 @@ const getTagName = (name : Tag) : {
     name : string
     selfClosing : boolean
 } => {
-	switch(name) {        
+	switch(name) {      
 	case "option":
 	case "select":
 	case "button":
@@ -591,7 +617,8 @@ const getTagName = (name : Tag) : {
 		return {
 			name : "span",
 			selfClosing : false
-		};
+		};  
+	case "progress":
 	case "stack":
 	case "scrollable":
 	case "row":
@@ -662,6 +689,9 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		}
 		return props;
 	case "name":
+		if(value === "progress") {
+			props.class = "progress";
+		}
 		if(value === "stack") {
 			props.style.position = "relative";
 		} else if(value === "row" || value === "column") {
@@ -714,7 +744,11 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		props.draggable = "true";
 		return props;
 	case "color":
-		props.style.color = value as string;
+		if(component.name === "progress") {
+			props.style["border-color"] = value as string;
+		} else {
+			props.style.color = value as string;
+		}
 		return props;
 	case "size":
 		props.style["font-size"] = `${value}px`;

@@ -13,9 +13,6 @@
     "lint": "eslint",
     "test": "jest"
   },
-  "targets": {
-    "types": false
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nagolyhprum/polygraphic-web.git"
@@ -30,7 +27,7 @@
     "canvas": "^2.9.0",
     "moment": "^2.29.1",
     "parcel": "^2.5.0",
-    "polygraphic": "^0.80.0",
+    "polygraphic": "^0.81.0",
     "showdown": "^2.0.3"
   },
   "devDependencies": {
