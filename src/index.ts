@@ -334,6 +334,9 @@ function Component(component) {
 				cache[key] = value;
 				${ /* TODO : LOOK AT DEPENDENCIES */ "" }
 				switch(key) {
+					case "src":
+						target.src = value + ".svg"
+						return;
 					case "width":
 					case "height":
 						target.style[key] = numberToMeasurement(value);
