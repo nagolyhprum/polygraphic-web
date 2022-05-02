@@ -812,6 +812,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	case "focus":
 	case "animation":
 	case "funcs":
+	case "bundle":
 		return props;
 	}
 	failed(name);
@@ -834,6 +835,9 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
     local : Local
 }) => {
 	switch(name) {
+	case "bundle":
+		output.images.push(...(value as string[]));
+		return;
 	case "text":
 		output.html.push(value?.toString() ?? "");
 		return;
