@@ -444,6 +444,12 @@ function Component(component) {
 						cache.prevData = curr;
 						target.value = cache.value;
 						return;
+					case "position":
+						target.style.top = typeof value.top === "number" ? value.top + "px" : "auto";
+						target.style.right = typeof value.right === "number" ? value.right + "px" : "auto";
+						target.style.bottom = typeof value.bottom === "number" ? value.bottom + "px" : "auto";
+						target.style.left = typeof value.left === "number" ? value.left + "px" : "auto";
+						return;
 					case "background":
 						target.style.background = value;
 						return;
@@ -795,6 +801,9 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			props.style["pointer-events"] = "none";
 		}
 		return props;
+	case "whitespace":
+		props.style["white-space"] = value as string;
+		return props;
 	case "manifest":
 	case "markdown":
 	case "onDragEnd":
@@ -996,6 +1005,7 @@ window.onpopstate = function() {
 	case "shadow":
 	case "alt":
 	case "clickable":
+	case "whitespace":
 		return;
 	}
 	failed(name);
