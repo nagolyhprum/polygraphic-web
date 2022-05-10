@@ -115,7 +115,7 @@ select, input, button, html, body, p, span {
 @-webkit-keyframes spin {
 	to { -webkit-transform: rotate(360deg); }
 }
-span {
+p, span {
 	display : inline-block;
 }`,
 			[`${name}.js`] : result.js.join("\n"),
