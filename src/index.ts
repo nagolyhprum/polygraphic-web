@@ -804,6 +804,9 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	case "whitespace":
 		props.style["white-space"] = value as string;
 		return props;
+	case "align":
+		props.style["text-align"] = value as string;
+		return props;
 	case "manifest":
 	case "markdown":
 	case "onDragEnd":
@@ -1006,6 +1009,7 @@ window.onpopstate = function() {
 	case "alt":
 	case "clickable":
 	case "whitespace":
+	case "align":
 		return;
 	}
 	failed(name);
