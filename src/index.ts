@@ -88,6 +88,7 @@ html, body {
 }
 * { 
 	box-sizing: border-box;
+	transition: opacity 300ms;
 }
 button {
 	cursor : pointer;
@@ -349,6 +350,9 @@ function Component(component) {
 							target.focus();
 							target.setSelectionRange(0, target.value.length);
 						}, 300);
+						return;
+					case "opacity":
+						target.style.opacity = value;
 						return;
 					case "enabled":
 						target.disabled = !value;
