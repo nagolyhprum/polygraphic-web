@@ -482,11 +482,7 @@ var update = (function() {
 		clearTimeout(timeout);
 		timeout = windowSetTimeout(function() {
 			listeners.forEach(function (listener) {
-				try {
-					listener.callback(listener.local.value, listener.local.index, listener.component)
-				} catch(e) {
-					console.error(e);
-				}
+				listener.callback(listener.local.value, listener.local.index, listener.component)
 			});        
 			listeners = listeners.filter(function(listener) {
 				return listener.component.isMounted;
