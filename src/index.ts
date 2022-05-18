@@ -88,7 +88,7 @@ html, body {
 }
 * { 
 	box-sizing: border-box;
-	transition: opacity 300ms;
+	transition: opacity 300ms, width 300ms, height 300ms;
 }
 button {
 	cursor : pointer;
