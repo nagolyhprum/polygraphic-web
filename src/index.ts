@@ -600,7 +600,19 @@ function bind(root, local) {
 			}
 		});
 	});
-}`);
+}
+var speech = (function() {
+	var utterance = new SpeechSynthesisUtterance();
+	return {
+		speak: function(config) {
+			utterance.lang = config.lang || "en-US";
+			utterance.rate = config.rate || 1;
+			utterance.text = config.text || "";
+			speechSynthesis.cancel();
+			speechSynthesis.speak(utterance);
+		}
+	};
+}());`);
 		output.js.push("bind(document.body, Local(global, 0));");
 		scripts.forEach(script => {
 			if(output.dependencies.has(script.dependency)) {
