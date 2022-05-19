@@ -603,6 +603,7 @@ function bind(root, local) {
 }
 var speech = (function() {
 	var utterance = new SpeechSynthesisUtterance();
+	var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
 	return {
 		speak: function(config) {
 			utterance.lang = config.lang || "en-US";
@@ -610,6 +611,26 @@ var speech = (function() {
 			utterance.text = config.text || "";
 			speechSynthesis.cancel();
 			speechSynthesis.speak(utterance);
+		},
+		listen: function(config) {
+			recognition.onresult = function(e) {
+				config.onResult({
+					results: Array.from(e.results).map(function(array) {
+						return Array.from(array).map(function(alternative) {
+							return {
+								confidence: alternative.confidence,
+								transcript: alternative.transcript
+							}
+						});
+					})
+				});
+				update();
+			};
+			recognition.continuous = config.continuous || false;
+			recognition.lang = config.lang || "en-US";
+			recognition.interimResults = config.interimResults || false;
+			recognition.maxAlternatives = config.maxAlternatives || 1;
+			recognition.start();
 		}
 	};
 }());`);
