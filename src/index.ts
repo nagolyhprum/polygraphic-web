@@ -24,7 +24,6 @@ import moment from "moment";
 import showdown from "showdown";
 import path from "path";
 import fs from "fs";
-import { createCanvas, loadImage } from "canvas";
 
 const getPath = (input : string) => {
 	return input.replace(/^file:\/\//, "");
@@ -37,35 +36,6 @@ const readFile = (path : string) => {
 			else resolve(data);
 		});
 	});
-};
-
-const MANIFEST_ICON_SIZES = [48, 72, 96, 128, 192, 256, 512];
-
-const createImage = async ({
-	icon,
-	background,
-	size,
-	percent
-} : {
-	icon : string
-	background : string
-	size : number
-	percent : number
-}) : Promise<Buffer> => {
-	const image = await loadImage(icon);
-	const canvas = createCanvas(size, size);
-	const context = canvas.getContext("2d");
-	context.fillStyle = background;
-	context.fillRect(0, 0, size, size);
-	const resize = size / Math.min(image.width, image.height) * percent;
-	const width = image.width * resize;
-	const height = image.height * resize;
-	const x = size / 2 - width / 2;
-	const y = size / 2 - height / 2;
-	image.width = width;
-	image.height = height;
-	context.drawImage(image, x, y, width, height);
-	return canvas.toBuffer("image/png");
 };
 
 const converter = new showdown.Converter();
@@ -130,45 +100,7 @@ p, span {
 		};
 		if(result.manifest) {
 			const manifest = result.manifest;
-			const icon = manifest.icons;
-			const src = getPath(icon.src);
-			files[`${name}-mask.png`] = await createImage({
-				background : manifest.background_color,
-				icon : src,
-				percent : icon.percent,
-				size : 192
-			});
-			files[`${name}-favicon.png`] = await createImage({
-				background : manifest.background_color,
-				icon : src,
-				percent : 1,
-				size : 16
-			});
-			files[`${name}-ati.png`] = await createImage({
-				background : manifest.background_color,
-				icon : src,
-				percent : icon.percent,
-				size : 180
-			});
-			await Promise.all(MANIFEST_ICON_SIZES.map(async size => {
-				files[`${name}-${size}x${size}.png`] = await createImage({
-					background : manifest.background_color,
-					icon : src,
-					percent : icon.percent,
-					size
-				});
-			}));
-			files[`${name}-manifest.json`] = JSON.stringify({
-				...manifest,
-				icons : [{
-					src : `${name}-mask.png`,
-					purpose : "maskable",
-					sizes : "192x192"
-				}, ...MANIFEST_ICON_SIZES.map(size => ({
-					sizes : `${size}x${size}`,
-					src : `${name}-${size}x${size}.png`
-				}))]
-			}, null, "\t");
+			files[`${name}-manifest.json`] = JSON.stringify(manifest, null, "\t");
 			files[`${name}-service-worker.js`] = `
 var cacheName = "${name}";
 self.addEventListener("install", function(event) {

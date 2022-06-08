@@ -24,10 +24,9 @@
   },
   "homepage": "https://github.com/nagolyhprum/polygraphic-web#readme",
   "dependencies": {
-    "canvas": "^2.9.0",
     "moment": "^2.29.1",
     "parcel": "^2.5.0",
-    "polygraphic": "^0.100.0",
+    "polygraphic": "^0.101.0",
     "showdown": "^2.0.3"
   },
   "devDependencies": {
