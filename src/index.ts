@@ -90,13 +90,6 @@ p, span {
 	display : inline-block;
 }`,
 			[`${name}.js`] : result.js.join("\n"),
-			...(await result.images.reduce(async (promise, image) => {
-				const images = await promise;
-				return {
-					...images,
-					[path.basename(image)] : await readFile(getPath(image))
-				};
-			}, {}))
 		};
 		if(result.manifest) {
 			const manifest = result.manifest;
@@ -184,7 +177,6 @@ const json = <Global extends GlobalState, Local>(
 			html : [],
 			scripts : [],
 			cache : new Set<string>([]),
-			images : []
 		};
 		handle({
 			component,
@@ -822,9 +814,6 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
     local : Local
 }) => {
 	switch(name) {
-	case "bundle":
-		output.images.push(...(value as string[]));
-		return;
 	case "text":
 		output.html.push(value?.toString() ?? "");
 		return;
@@ -951,8 +940,7 @@ window.onpopstate = function() {
 		output.manifest = value as Manifest;
 		return props;
 	case "src":
-		output.images.push(value as string);
-		return props;
+	case "bundle":
 	case "opacity":
 	case "visible":
 	case "padding":

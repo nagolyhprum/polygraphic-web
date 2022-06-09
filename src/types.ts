@@ -11,5 +11,4 @@ export type DocumentOutput = {
     cache : Set<string>
     dependencies : Set<string>
     manifest?: Manifest
-    images : string[]
 }
