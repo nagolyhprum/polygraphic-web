@@ -1186,7 +1186,7 @@ const handle = <Global extends GlobalState, Local>({
 		if(key !== "children" && value) {
 			if(value instanceof Set) {
 				if(value.size) {
-					return `${key}="${Array.from(value).join(" ")}"`;
+					return `class="${Array.from(value).join(" ")}"`;
 				}
 			} else {
 				return `${key}="${value}"`;
