@@ -249,7 +249,7 @@ function Component(component) {
 				${ /* TODO : LOOK AT DEPENDENCIES */ "" }
 				switch(key) {
 					case "src":
-						target.src = value + ".svg"
+						target.src = value;
 						return;
 					case "width":
 					case "height":
