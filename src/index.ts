@@ -58,6 +58,7 @@ select, input, button, html, body, p, span, a {
 	padding : 0;
 	border : 0;
 	font-size : 16px;
+	text-decoration : none;
 }
 .progress {
 	display: inline-block;
