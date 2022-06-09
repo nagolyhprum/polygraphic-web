@@ -1315,11 +1315,12 @@ const document = ({
 			<title>${manifest.name}</title>
 			<meta name="description" content="${manifest.description}" />
 			<meta name="theme-color" content="${manifest.theme_color}" />
+			<meta name="viewport" content="width=device-width,initial-scale=1">
 			<link rel="manifest" href="./${name}-manifest.json" />
 		` : `<title>${title}</title>${
-		Object.keys(metas).map(key => `<meta name=${key} content=${metas[key]} />`).join("")
+		Object.keys(metas).map(key => `<meta name="${key}" content="${metas[key]}" />`).join("")
 	}${
-		Object.keys(links).map(key => `<link rel=${key} href=${links[key]} />`).join("")
+		Object.keys(links).map(key => `<link rel="${key}" href="${links[key]}" />`).join("")
 	}`}
 		<link href="./${name}.css" rel="stylesheet" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
