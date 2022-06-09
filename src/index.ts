@@ -23,20 +23,6 @@ export * from "./types";
 import moment from "moment";
 import showdown from "showdown";
 import path from "path";
-import fs from "fs";
-
-const getPath = (input : string) => {
-	return input.replace(/^file:\/\//, "");
-};
-
-const readFile = (path : string) => {
-	return new Promise<string>((resolve, reject) => {
-		fs.readFile(path, "utf-8", (err: Error | null, data: string) => {
-			if(err) reject(err);
-			else resolve(data);
-		});
-	});
-};
 
 const converter = new showdown.Converter();
 
@@ -588,6 +574,11 @@ const getTagName = (name : Tag) : {
 			name : "span",
 			selfClosing : false
 		};  
+	case "anchor":
+		return {
+			name : "a",
+			selfClosing : false
+		};
 	case "progress":
 	case "stack":
 	case "scrollable":
@@ -770,6 +761,12 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		return props;
 	case "align":
 		props.style["text-align"] = value as string;
+		return props;
+	case "href":
+		props.href = value as string;
+		return props;
+	case "target":
+		props.target = value as string;
 		return props;
 	case "manifest":
 	case "markdown":
@@ -970,6 +967,8 @@ window.onpopstate = function() {
 	case "clickable":
 	case "whitespace":
 	case "align":
+	case "target":
+	case "href":
 		return;
 	}
 	failed(name);
