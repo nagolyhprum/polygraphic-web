@@ -29,9 +29,9 @@ const converter = new showdown.Converter();
 export const html = <Global extends GlobalState, Local>(
 	root : ComponentFromConfig<Global, Local>,
 	name : string
-) => async (
+) => (
 		generateState : (config : (event : EventConfig<GlobalState, null, null>) => Global & Local) => Global & Local
-	) : Promise<Record<string, string | Buffer>> => {
+	) : Record<string, string | Buffer> => {
 		const result = json(root, name)(generateState);
 		const files : Record<string, string | Buffer> = {			
 			[`${name}.html`] : document(result),
@@ -74,7 +74,16 @@ select, input, button, html, body, p, span, a {
 }
 p, span, a {
 	display : inline-block;
-}`,
+}
+${Object.keys(result.css.queries).map(query => {
+		return `${query}{${
+			Object.keys(result.css.queries?.[query] || {}).map(className => {
+				return `.${className}{${
+					Object.keys(result.css.queries?.[query]?.[className] || {}).map(styleName => {
+						return `${styleName}:${result.css.queries?.[query]?.[className]?.[styleName]}`;
+					}).join(";")}}`;
+			}).join("")}}`;
+	}).join("")}`,
 			[`${name}.js`] : result.js.join("\n"),
 		};
 		if(result.manifest) {
@@ -159,7 +168,12 @@ const json = <Global extends GlobalState, Local>(
 			name,
 			dependencies : new Set<string>([]),
 			js : [],
-			css : [],
+			css : {
+				cache : {},
+				letter : "a",
+				queries : {},
+				query : "@media all"
+			},
 			html : [],
 			scripts : [],
 			cache : new Set<string>([]),
@@ -619,16 +633,53 @@ const numberToMeasurement = (input : number | null | undefined) : string => {
 		return `${input}px`;
 	}
 };
+
+const addClass = (name : string, value : string, output : DocumentOutput, props : TagProps) : TagProps => {
+	const cache = output.css.cache[output.css.query]?.[name]?.[value];
+	if(cache) {
+		props.className.add(cache);
+	} else {
+		const letter = output.css.letter;
+		{ // set up the cache
+			const query = output.css.cache[output.css.query] = output.css.cache[output.css.query] || {};
+			const style = query[name] = query[name] || {};
+			style[value] = letter;
+		}
+		{ // set up the output
+			const query = output.css.queries[output.css.query] = output.css.queries[output.css.query] || {};
+			const className = query[letter] = query[letter] || {};
+			className[name] = value;
+		}
+		props.className.add(letter);
+	}
+	return props;
+};
 	
-const handleBox = (prefix : string, input : BoxProp<Array<unknown> | number>, props : TagProps) => {
+const handleBox = (
+	prefix : string, 
+	input : BoxProp<Array<unknown> | number>, 
+	props : TagProps, 
+	output : DocumentOutput
+) : TagProps => {
 	keys(input).forEach(key => {
 		const value = input[key];
 		if(value instanceof Array) {
-			props.style[`${prefix}${key}`] = value.map(it => typeof it === "number" ? numberToMeasurement(it) : it).join(" ");
+			addClass(
+				`${prefix}${key}`, 
+				value.map(it => typeof it === "number" ? numberToMeasurement(it) : it).join(" "), 
+				output,
+				props
+			);
 		} else {
-			props.style[`${prefix}${key}`] = numberToMeasurement(value);
+			addClass(
+				`${prefix}${key}`,
+				numberToMeasurement(value),
+				output,
+				props
+			);
 		}
 	});
+	return props;
 };
 
 const handleProp = <Global extends GlobalState, Local, Key extends keyof Component<Global, Local>>({
@@ -636,17 +687,24 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	name,
 	value,
 	props,
+	output
 } : {
     component : Component<Global, Local>
     name : Key
     value : Component<Global, Local>[Key]
     props : TagProps
+	output : DocumentOutput
 }) : TagProps => {
 	switch(name) {
 	case "width":
 	case "height":
 		if(typeof value === "number") {
-			props.style[name] = numberToMeasurement(value);
+			addClass(
+				name,
+				numberToMeasurement(value),
+				output,
+				props
+			);
 		}
 		return props;
 	case "name":
@@ -654,49 +712,84 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			props.class = "progress";
 		}
 		if(value === "stack") {
-			props.style.position = "relative";
+			addClass(
+				"position",
+				"relative",
+				output,
+				props
+			);
 		} else if(value === "row" || value === "column") {
-			props.style.display = "flex";
-			props.style["flex-direction"] = value.toString();
+			addClass(
+				"display",
+				"flex",
+				output,
+				props
+			);
+			addClass(
+				"flex-direction",
+				value as string,
+				output,
+				props
+			);
 		}
 		if(value === "date") {
 			props.type = "date";
 		}
 		if(value === "scrollable") {
-			props.style.overflow = "auto";
+			addClass(
+				"overflow",
+				"auto",
+				output,
+				props
+			);
 		}
 		if(value === "checkbox") {
-			props.type="checkbox";
+			props.type = "checkbox";
 		}
 		return props;
 	case "background":
-		props.style.background = value?.toString() ?? "";
-		return props;
+		return addClass(
+			"background",
+			value as string,
+			output,
+			props
+		);
 	case "grow":
-		props.style["flex-grow"] = value ? "1" : "";
-		return props;
+		return addClass(
+			"flex-grow",
+			value ? "1" : "",
+			output,
+			props
+		);
 	case "id":
-		props["data-id"] = value?.toString() ?? "";
+		props["data-id"] = value as string;
 		return props;
 	case "position":
-		props.style.position = "absolute";
-		handleBox("", value as BoxProp<number | Array<unknown>>, props);
-		return props;
+		return handleBox("", value as BoxProp<number | Array<unknown>>, addClass(
+			"position",
+			"absolute",
+			output,
+			props
+		), output);
 	case "padding":
 	case "margin":
 	case "border":
-		handleBox(`${name}-`, value as BoxProp<number | Array<unknown>>, props);
-		return props;
+		return handleBox(`${name}-`, value as BoxProp<number | Array<unknown>>, props, output);
 	case "visible":
 		if(!value) {
-			props.style.display = "none";
+			addClass(
+				"display",
+				"none",
+				output,
+				props
+			);
 		}
 		return props;
 	case "value":
-		props.value = value?.toString() ?? "";
+		props.value = value as string;
 		return props;
 	case "placeholder":
-		props.placeholder = value?.toString() ?? "";
+		props.placeholder = value as string;
 		return props;
 	case "enabled":
 		props.disabled = value === false ? "disabled" : "";
@@ -706,62 +799,118 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		return props;
 	case "color":
 		if(component.name === "progress") {
-			props.style["border-top-color"] = value as string;
+			addClass(
+				"border-top-color",
+				value as string,
+				output,
+				props
+			);
 		} else {
-			props.style.color = value as string;
+			addClass(
+				"color",
+				value as string,
+				output,
+				props
+			);
 		}
 		return props;
 	case "size":
-		props.style["font-size"] = `${value}px`;
-		return props;
+		return addClass(
+			"font-size",
+			`${value}px`,
+			output,
+			props
+		);
 	case "src":
 		props.src = path.basename(value as string);
 		return props;
 	case "crossAxisAlignment":
-		if(component.name === "row") {
-			props.style["align-items"] = value as Alignment;
-		} else if(component.name === "column") {
-			props.style["align-items"] = value as Alignment;
+		if(component.name === "row" || component.name === "column") {
+			addClass(
+				"align-items",
+				value as Alignment,
+				output,
+				props
+			);
 		}
 		return props;
 	case "mainAxisAlignment":
-		if(component.name === "row") {
-			props.style["justify-content"] = value as Alignment;
-		} else if(component.name === "column") {
-			props.style["justify-content"] = value as Alignment;
+		if(component.name === "row" || component.name === "column") {
+			addClass(
+				"justify-content",
+				value as Alignment,
+				output,
+				props
+			);
 		}
 		return props;
 	case "round":
-		props.style["border-radius"] = numberToMeasurement(value as number);
-		return props;
+		return addClass(
+			"border-radius",
+			numberToMeasurement(value as number),
+			output,
+			props
+		);
 	case "clip":
 		if(value) {
-			props.style.overflow = "hidden";
+			addClass(
+				"overflow",
+				"hidden",
+				output,
+				props
+			);
 		}
 		return props;
 	case "shadow":
 		if(value) {
-			props.style["z-index"] = "1";
-			props.style["box-shadow"] = "rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px";
+			addClass(
+				"z-index",
+				"1",
+				output,
+				props
+			);
+			addClass(
+				"box-shadow",
+				"rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px",
+				output,
+				props
+			);
 		}
 		return props;
 	case "opacity":
-		props.style.opacity = `${value}`;
-		return props;
+		return addClass(
+			"opacity",
+			`${value}`,
+			output,
+			props
+		);
 	case "alt":
 		props.alt = `${value}`;
 		return props;
 	case "clickable":
 		if(value === false) {
-			props.style["pointer-events"] = "none";
+			addClass(
+				"pointer-events",
+				"none",
+				output,
+				props
+			);
 		}
 		return props;
 	case "whitespace":
-		props.style["white-space"] = value as string;
-		return props;
-	case "align":
-		props.style["text-align"] = value as string;
-		return props;
+		return addClass(
+			"white-space",
+			value as string,
+			output,
+			props
+		);
+	case "align":		
+		return addClass(
+			"text-align",
+			value as string,
+			output,
+			props
+		);
 	case "href":
 		props.href = value as string;
 		return props;
@@ -812,7 +961,7 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 }) => {
 	switch(name) {
 	case "text":
-		output.html.push(value?.toString() ?? "");
+		output.html.push(value as string);
 		return;
 	case "children":
 		(value as Component<Global, Local>[]).forEach(component => handle({
@@ -931,7 +1080,7 @@ window.onpopstate = function() {
 		});
 		return;
 	case "markdown":
-		output.html.push(converter.makeHtml(value?.toString() ?? ""));
+		output.html.push(converter.makeHtml(value as string));
 		return props;
 	case "manifest":
 		output.manifest = value as Manifest;
@@ -1010,19 +1159,20 @@ const handle = <Global extends GlobalState, Local>({
 			component,
 			name,
 			props,
-			value: component[name]
+			value: component[name],
+			output
 		});
-	}, {
-		style : {}
-	} as TagProps);
+	}, <TagProps>{
+		className: new Set<string>([])
+	});
 
 	const render = Object.keys(props).map(key => {
-		const value = props[key];
+		const value = props[key] as unknown;
 		if(key !== "children" && value) {
-			if(typeof value === "object") {
-				return `style="${keys(value).map((key) => {
-					return `${key.toString()}:${value[key]}`;
-				}).join(";")}"`;
+			if(value instanceof Set) {
+				if(value.size) {
+					return `${key}="${Array.from(value).join(" ")}"`;
+				}
 			} else {
 				return `${key}="${value}"`;
 			}
