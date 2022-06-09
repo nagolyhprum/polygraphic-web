@@ -640,6 +640,21 @@ const addClass = (name : string, value : string, output : DocumentOutput, props 
 		props.className.add(cache);
 	} else {
 		const letter = output.css.letter;
+		{ // update the letter
+			const next = letter.split("").map(it => it.charCodeAt(0) - "a".charCodeAt(0));
+			next[0]++;
+			for(let i = 0; i < next.length; i++) {
+				if(next[i] === 26) {
+					next[i] = 0;
+					if(i + 1 === next.length) {
+						next.push(0);
+					} else {
+						next[i + 1]++;
+					}
+				}
+			}
+			output.css.letter = next.map(it => it + "a".charCodeAt(0)).map(it => String.fromCharCode(it)).join("");
+		}
 		{ // set up the cache
 			const query = output.css.cache[output.css.query] = output.css.cache[output.css.query] || {};
 			const style = query[name] = query[name] || {};
