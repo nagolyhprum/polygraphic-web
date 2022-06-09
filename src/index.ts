@@ -49,7 +49,7 @@ html, body {
 button {
 	cursor : pointer;
 }
-select, input, button, html, body, p, span {
+select, input, button, html, body, p, span, a {
 	display : inline-flex;
 	font-family: 'Roboto', sans-serif;
 	text-align : start;
@@ -72,7 +72,7 @@ select, input, button, html, body, p, span {
 @-webkit-keyframes spin {
 	to { -webkit-transform: rotate(360deg); }
 }
-p, span {
+p, span, a {
 	display : inline-block;
 }`,
 			[`${name}.js`] : result.js.join("\n"),
