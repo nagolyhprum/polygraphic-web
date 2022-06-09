@@ -169,6 +169,11 @@ const json = <Global extends GlobalState, Local>(
 			name,
 			dependencies : new Set<string>([]),
 			js : [],
+			head : {
+				title : "",
+				links: {},
+				metas: {}
+			},
 			css : {
 				cache : {},
 				letter : "a",
@@ -937,6 +942,23 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	case "target":
 		props.target = value as string;
 		return props;
+	case "links": {
+		const map = value as Record<string, string>;
+		Object.keys(map).forEach(key => {
+			output.head.links[key] = map[key];
+		});
+		return props;
+	}
+	case "metas": {
+		const map = value as Record<string, string>;
+		Object.keys(map).forEach(key => {
+			output.head.metas[key] = map[key];
+		});
+		return props;
+	}
+	case "title":
+		output.head.title = value as string;
+		return props;
 	case "manifest":
 	case "markdown":
 	case "onDragEnd":
@@ -1105,6 +1127,9 @@ window.onpopstate = function() {
 	case "manifest":
 		output.manifest = value as Manifest;
 		return props;
+	case "links":
+	case "metas":
+	case "title":
 	case "src":
 	case "bundle":
 	case "opacity":
@@ -1277,7 +1302,12 @@ const document = ({
 	scripts,
 	html,
 	js,
-	manifest
+	manifest,
+	head: {
+		title,
+		metas,
+		links
+	}
 } : DocumentOutput) => `<!doctype html>
     <html lang="en">
     <head>
@@ -1285,10 +1315,12 @@ const document = ({
 			<title>${manifest.name}</title>
 			<meta name="description" content="${manifest.description}" />
 			<meta name="theme-color" content="${manifest.theme_color}" />
-			<link rel="icon" href="${name}-favicon.png" />
-			<link rel="apple-touch-icon" href="${name}-ati.png" />
 			<link rel="manifest" href="./${name}-manifest.json" />
-		` : ""}
+		` : `<title>${title}</title>${
+		Object.keys(metas).map(key => `<meta name=${key} content=${metas[key]} />`).join("")
+	}${
+		Object.keys(links).map(key => `<link rel=${key} href=${links[key]} />`).join("")
+	}`}
 		<link href="./${name}.css" rel="stylesheet" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 	</head>

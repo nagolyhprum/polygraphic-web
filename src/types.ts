@@ -6,6 +6,11 @@ export type DocumentOutput = {
     name : string
     html : string[]
     js : string[]
+    head : {
+        title : string
+        metas : Record<string, string>
+        links : Record<string, string>
+    }
     css : {
         letter : string
         query : string
