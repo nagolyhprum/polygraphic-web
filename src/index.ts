@@ -901,7 +901,11 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			props
 		);
 	case "alt":
-		props.alt = `${value}`;
+		if(component.name === "image") {
+			props.alt = value as string;
+		} else {
+			props["aria-label"] = value as string;
+		}
 		return props;
 	case "clickable":
 		if(value === false) {
