@@ -84,7 +84,9 @@ ${Object.keys(result.css.queries).map(query => {
 					}).join(";")}}`;
 			}).join("")}}`;
 	}).join("")}`,
-			[`${name}.js`] : result.js.join("\n"),
+			...(result.js.length ? {
+				[`${name}.js`] : result.js.join("\n"),
+			} : {})
 		};
 		if(result.manifest) {
 			const manifest = result.manifest;
@@ -1106,7 +1108,7 @@ window.onpopstate = function() {
 		const id = `${name}:${component.id}`;
 		if(!output.cache.has(id)) {
 			output.cache.add(id);
-			const generated = (value as Array<(config : any) => ProgrammingLanguage | null>).map((callback) => {
+			const generated = (value as Array<(config : any) => ProgrammingLanguage>).map((callback) => {
 				const generated = compile(callback, output.dependencies);
 				return generated ? javascript(generated, "\t") : "";
 			}).filter(_ => _).join("\n");
@@ -1191,20 +1193,14 @@ const handle = <Global extends GlobalState, Local>({
 
 	if(component.observe && local) {
 		component.observe.forEach(callback => {
-			try {
-				const generated = compile(callback as (config : any) => ProgrammingLanguage | null, output.dependencies);
-				if(generated) {
-					execute(generated, {
-						global,
-						local,
-						event : component,
-						...stubs,
-						moment
-					});
-				}
-			} catch(e) {
-				throw new Error(`HERE ${callback}`);
-			}
+			const generated = compile(callback as (config : any) => ProgrammingLanguage, output.dependencies);
+			execute(generated, {
+				global,
+				local,
+				event : component,
+				...stubs,
+				moment
+			});
 		});
 	}
 
