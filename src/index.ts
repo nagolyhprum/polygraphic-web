@@ -8,7 +8,6 @@ import {
 	WRAP,
 	MATCH,
 	BoxProp,
-	TagProps,
 	ProgrammingLanguage,
 	javascriptBundle,
 	Alignment,
@@ -18,7 +17,7 @@ import {
 	stubs,
 	EventConfig
 } from "polygraphic";
-import { DocumentOutput, Manifest } from "./types";
+import { DocumentOutput, Manifest, TagProps } from "./types";
 export * from "./types";
 import moment from "moment";
 import showdown from "showdown";
@@ -1192,14 +1191,20 @@ const handle = <Global extends GlobalState, Local>({
 
 	if(component.observe && local) {
 		component.observe.forEach(callback => {
-			const generated = compile(callback as (config : any) => ProgrammingLanguage, output.dependencies);
-			execute(generated, {
-				global,
-				local,
-				event : component,
-				...stubs,
-				moment
-			});
+			try {
+				const generated = compile(callback as (config : any) => ProgrammingLanguage | null, output.dependencies);
+				if(generated) {
+					execute(generated, {
+						global,
+						local,
+						event : component,
+						...stubs,
+						moment
+					});
+				}
+			} catch(e) {
+				throw new Error(`HERE ${callback}`);
+			}
 		});
 	}
 
