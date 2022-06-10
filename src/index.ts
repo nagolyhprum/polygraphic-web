@@ -190,7 +190,7 @@ const json = <Global extends GlobalState, Local>(
 			local : state,
 			output
 		});
-		if(output.js) {
+		if(output.js.length) {
 			output.js.unshift(`${javascriptBundle(output.dependencies)}
 ${library(output.dependencies)}
 ${output.manifest ? `
@@ -430,6 +430,7 @@ function bind(root, local) {
 	root.__local__ = local;
 	Array.from(root.querySelectorAll("[data-id]")).concat(root.dataset.id ? [root] : []).forEach(function(component) {
 		var toBind = events[component.dataset.id];
+		if(!toBind) return;
 		Object.keys(toBind).forEach(function(event) {
 			var callback = toBind[event];
 			if(event === "onResize") {
