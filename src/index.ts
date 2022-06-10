@@ -190,7 +190,8 @@ const json = <Global extends GlobalState, Local>(
 			local : state,
 			output
 		});
-		output.js.unshift(`${javascriptBundle(output.dependencies)}
+		if(output.js) {
+			output.js.unshift(`${javascriptBundle(output.dependencies)}
 ${library(output.dependencies)}
 ${output.manifest ? `
 if ("serviceWorker" in navigator) {
@@ -564,7 +565,8 @@ var speech = (function() {
 		}
 	};
 }());`);
-		output.js.push("bind(document.body, Local(global, 0));");
+			output.js.push("bind(document.body, Local(global, 0));");
+		}
 		scripts.forEach(script => {
 			if(output.dependencies.has(script.dependency)) {
 				output.scripts.push(script.src);
@@ -1105,12 +1107,14 @@ window.onpopstate = function() {
 		const id = `${name}:${component.id}`;
 		if(!output.cache.has(id)) {
 			output.cache.add(id);
-			output.js.push(`setEvent("${component.id}", "${name}", function(local, index, event) {`);
-			(value as Array<(config : any) => ProgrammingLanguage>).forEach((callback) => {
+			const generated = (value as Array<(config : any) => ProgrammingLanguage | null>).map((callback) => {
 				const generated = compile(callback, output.dependencies);
-				output.js.push(javascript(generated, "\t"));
-			});
-			output.js.push("});");
+				return generated ? javascript(generated, "\t") : "";
+			}).filter(_ => _).join("\n");
+			if(generated) {
+				output.js.push(`setEvent("${component.id}", "${name}", function(local, index, event) {
+${generated}});`);
+			}
 		}
 		return;
 	}
