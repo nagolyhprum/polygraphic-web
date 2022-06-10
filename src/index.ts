@@ -21,7 +21,6 @@ import { DocumentOutput, Manifest, TagProps } from "./types";
 export * from "./types";
 import moment from "moment";
 import showdown from "showdown";
-import path from "path";
 
 const converter = new showdown.Converter();
 
@@ -846,7 +845,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			props
 		);
 	case "src":
-		props.src = path.basename(value as string);
+		props.src = value as string;
 		return props;
 	case "crossAxisAlignment":
 		if(component.name === "row" || component.name === "column") {
