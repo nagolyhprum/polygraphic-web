@@ -1010,8 +1010,8 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	}
 	case "columns":
 		return addClass(
-			"grid-column",
-			`grid-template-columns: repeat(${value}, 1fr)`,
+			"grid-template-columns",
+			`repeat(${value}, 1fr)`,
 			output,
 			props
 		);
