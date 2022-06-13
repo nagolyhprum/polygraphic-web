@@ -1023,7 +1023,13 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 					handleProp({
 						component,
 						name: prop,
-						output,
+						output: {
+							...output,
+							css: {
+								...output.css,
+								query: query as string
+							}
+						},
 						props,
 						value: queries[query][prop]
 					});
