@@ -584,7 +584,16 @@ const getTagName = (name : Tag) : {
     name : string
     selfClosing : boolean
 } => {
-	switch(name) {      
+	switch(name) {    
+	case "section":  
+	case "h1":  
+	case "h2":  
+	case "h3":  
+	case "p":  
+	case "header":  
+	case "main":  
+	case "footer":  
+	case "nav":  
 	case "option":
 	case "select":
 	case "button":
@@ -602,6 +611,8 @@ const getTagName = (name : Tag) : {
 			name : "a",
 			selfClosing : false
 		};
+	case "grid":
+	case "flex":
 	case "progress":
 	case "stack":
 	case "scrollable":
@@ -962,6 +973,57 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	case "title":
 		output.head.title = value as string;
 		return props;
+	case "direction":
+		return addClass(
+			"flex-direction",
+			value as string,
+			output,
+			props
+		);
+	case "max": {
+		const max = value as Component<Global, Local>["max"];
+		if(max?.width) {
+			addClass(
+				"max-width",
+				`${max.width}px`,
+				output,
+				props
+			);
+		}
+		if(max?.height) {
+			addClass(
+				"max-height",
+				`${max.height}px`,
+				output,
+				props
+			);
+		}
+		return props;
+	}
+	case "columns":
+		return addClass(
+			"grid-column",
+			`grid-template-columns: repeat(${value}, 1fr)`,
+			output,
+			props
+		);
+	case "queries": {
+		const queries = value as Component<Global, Local>["queries"];
+		if(queries) {
+			keys(queries).forEach(query => {
+				keys(queries[query]).forEach(prop => {
+					handleProp({
+						component,
+						name: prop,
+						output,
+						props,
+						value: queries[query][prop]
+					});
+				});
+			});
+		}
+		return props;
+	}
 	case "manifest":
 	case "markdown":
 	case "onDragEnd":
@@ -1168,6 +1230,10 @@ ${generated}});`);
 	case "align":
 	case "target":
 	case "href":
+	case "queries":
+	case "max":
+	case "columns":
+	case "direction":
 		return;
 	}
 	failed(name);
