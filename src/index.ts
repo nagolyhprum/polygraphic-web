@@ -767,6 +767,14 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 				props
 			);
 		}
+		if(value === "grid") {
+			addClass(
+				"display",
+				"grid",
+				output,
+				props
+			);
+		}
 		if(value === "date") {
 			props.type = "date";
 		}
