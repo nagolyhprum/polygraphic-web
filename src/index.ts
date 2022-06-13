@@ -985,7 +985,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		if(max?.width) {
 			addClass(
 				"max-width",
-				`${max.width}px`,
+				numberToMeasurement(max.width),
 				output,
 				props
 			);
@@ -993,7 +993,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		if(max?.height) {
 			addClass(
 				"max-height",
-				`${max.height}px`,
+				numberToMeasurement(max.height),
 				output,
 				props
 			);
