@@ -67,6 +67,8 @@ html, body {
 }
 * { 
 	box-sizing: border-box;
+}
+loaded * {
 	transition: opacity 300ms, width 300ms, height 300ms, transform 300ms;
 }
 button {
@@ -100,7 +102,7 @@ h1, h2, h3, p, span, a {
 	display : inline-block;
 }`, minify),
 			...(result.js.length ? {
-				[`${name}.js`] : minifyJs(result.js.join("\n"), minify),
+				[`${name}.js`] : minifyJs(result.js.join("\n") + "document.body.className = 'loaded';", minify),
 			} : {})
 		};
 		if(result.manifest) {
