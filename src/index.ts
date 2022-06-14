@@ -49,7 +49,16 @@ export const html = <Global extends GlobalState, Local>(
 				collapseWhitespace: true,
 				collapseInlineTagWhitespace: true
 			}) : document(result),
-			[`${name}.css`] : minifyCss(`@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
+			[`${name}.css`] : minifyCss(`${Object.keys(result.css.queries).map(query => {
+				return `${query}{\n\t${
+					Object.keys(result.css.queries?.[query] || {}).map(className => {
+						return `.${className}{${
+							Object.keys(result.css.queries?.[query]?.[className] || {}).map(styleName => {
+								return `${styleName}:${result.css.queries?.[query]?.[className]?.[styleName]}`;
+							}).join(";")}}`;
+					}).join("\n\t")}}`;
+			}).join("\n")}
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
 html, body {
 	display : flex;
 	width : 100%;
@@ -89,16 +98,7 @@ select, input, button, html, body, nav, footer, header, main, section, h1, h2, h
 }
 h1, h2, h3, p, span, a {
 	display : inline-block;
-}
-${Object.keys(result.css.queries).map(query => {
-		return `${query}{\n\t${
-			Object.keys(result.css.queries?.[query] || {}).map(className => {
-				return `.${className}{${
-					Object.keys(result.css.queries?.[query]?.[className] || {}).map(styleName => {
-						return `${styleName}:${result.css.queries?.[query]?.[className]?.[styleName]}`;
-					}).join(";")}}`;
-			}).join("\n\t")}}`;
-	}).join("\n")}`, minify),
+}`, minify),
 			...(result.js.length ? {
 				[`${name}.js`] : minifyJs(result.js.join("\n"), minify),
 			} : {})
@@ -290,6 +290,9 @@ function Component(component) {
 						return;
 					case "src":
 						target.src = value;
+						return;
+					case "clickable":
+						target.style.pointerEvents = value ? "auto" : "none";
 						return;
 					case "width":
 					case "height":
