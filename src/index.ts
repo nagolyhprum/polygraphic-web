@@ -833,7 +833,9 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			props
 		);
 	case "id":
-		props["data-id"] = value as string;
+		if(value) {
+			props["data-id"] = value as string;
+		}
 		return props;
 	case "position":
 		return handleBox("", value as BoxProp<number | Array<unknown>>, addClass(
@@ -1215,7 +1217,7 @@ window.onpopstate = function() {
 				const generated = compile(callback, output.dependencies);
 				return generated ? javascript(generated, "\t") : "";
 			}).filter(_ => _).join("\n");
-			if(generated) {
+			if(generated) {				
 				output.js.push(`setEvent("${component.id}", "${name}", function(local, index, event) {
 ${generated}});`);
 			}
