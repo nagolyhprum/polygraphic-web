@@ -47,7 +47,7 @@ html, body {
 button {
 	cursor : pointer;
 }
-select, input, button, html, body, p, span, a {
+select, input, button, html, body, p, span, a, nav, footer, header, main, h1, h2, h3, section {
 	display : inline-flex;
 	font-family: 'Roboto', sans-serif;
 	text-align : start;
@@ -753,19 +753,25 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 				output,
 				props
 			);
-		} else if(value === "row" || value === "column") {
+		} else if([
+			"row", 
+			"column", 
+			"flex"
+		].includes(value as string)) {
 			addClass(
 				"display",
 				"flex",
 				output,
 				props
 			);
-			addClass(
-				"flex-direction",
-				value as string,
-				output,
-				props
-			);
+			if(["row", "column"].includes(value as string)) {
+				addClass(
+					"flex-direction",
+					value as string,
+					output,
+					props
+				);
+			}
 		}
 		if(value === "grid") {
 			addClass(
