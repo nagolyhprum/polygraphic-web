@@ -1083,6 +1083,13 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			);
 		}
 		return props;
+	case "index":
+		return addClass(
+			"z-index",
+			`${value}`,
+			output,
+			props
+		);
 	case "manifest":
 	case "markdown":
 	case "onDragEnd":
@@ -1295,6 +1302,7 @@ ${generated}});`);
 	case "direction":
 	case "weight":	
 	case "translate":
+	case "index":
 		return;
 	}
 	failed(name);
