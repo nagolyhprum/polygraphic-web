@@ -47,7 +47,7 @@ html, body {
 button {
 	cursor : pointer;
 }
-select, input, button, html, body, p, span, a, nav, footer, header, main, h1, h2, h3, section {
+select, input, button, html, body, nav, footer, header, main, section {
 	display : inline-flex;
 	font-family: 'Roboto', sans-serif;
 	text-align : start;
@@ -71,7 +71,7 @@ select, input, button, html, body, p, span, a, nav, footer, header, main, h1, h2
 @-webkit-keyframes spin {
 	to { -webkit-transform: rotate(360deg); }
 }
-p, span, a {
+h1, h2, h3, p, span, a {
 	display : inline-block;
 }
 ${Object.keys(result.css.queries).map(query => {
