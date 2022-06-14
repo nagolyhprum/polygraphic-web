@@ -874,25 +874,19 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		props.src = value as string;
 		return props;
 	case "crossAxisAlignment":
-		if(component.name === "row" || component.name === "column") {
-			addClass(
-				"align-items",
-				value as Alignment,
-				output,
-				props
-			);
-		}
-		return props;
+		return addClass(
+			"align-items",
+			value as Alignment,
+			output,
+			props
+		);
 	case "mainAxisAlignment":
-		if(component.name === "row" || component.name === "column") {
-			addClass(
-				"justify-content",
-				value as Alignment,
-				output,
-				props
-			);
-		}
-		return props;
+		return addClass(
+			"justify-content",
+			value as Alignment,
+			output,
+			props
+		);
 	case "round":
 		return addClass(
 			"border-radius",
