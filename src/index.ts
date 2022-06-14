@@ -285,6 +285,9 @@ function Component(component) {
 				cache[key] = value;
 				${ /* TODO : LOOK AT DEPENDENCIES */ "" }
 				switch(key) {
+					case "translate":
+						target.style.transform = "translate(" + numberToMeasurement(value.x) + "," + numberToMeasurement(value.y) + ")";
+						return;
 					case "src":
 						target.src = value;
 						return;
