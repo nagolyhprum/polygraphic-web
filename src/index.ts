@@ -47,7 +47,7 @@ html, body {
 button {
 	cursor : pointer;
 }
-select, input, button, html, body, nav, footer, header, main, section {
+select, input, button, html, body, nav, footer, header, main, section, h1, h2, h3, p, span, a {
 	display : inline-flex;
 	font-family: 'Roboto', sans-serif;
 	text-align : start;
