@@ -1044,6 +1044,13 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		}
 		return props;
 	}
+	case "weight":
+		return addClass(
+			"font-weight",
+			`${value}`,
+			output,
+			props
+		);
 	case "manifest":
 	case "markdown":
 	case "onDragEnd":
@@ -1254,6 +1261,7 @@ ${generated}});`);
 	case "max":
 	case "columns":
 	case "direction":
+	case "weight":	
 		return;
 	}
 	failed(name);
