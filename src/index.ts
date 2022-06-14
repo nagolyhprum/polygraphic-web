@@ -611,6 +611,7 @@ const getTagName = (name : Tag) : {
 			name : "a",
 			selfClosing : false
 		};
+	case "fixed":
 	case "grid":
 	case "flex":
 	case "progress":
@@ -743,6 +744,14 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		}
 		return props;
 	case "name":
+		if(value === "fixed") {
+			addClass(
+				"position",
+				"fixed",
+				output,
+				props
+			);
+		}
 		if(value === "progress") {
 			props.class = "progress";
 		}
