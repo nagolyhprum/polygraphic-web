@@ -68,7 +68,7 @@ html, body {
 * { 
 	box-sizing: border-box;
 }
-loaded * {
+.loaded * {
 	transition: opacity 300ms, width 300ms, height 300ms, transform 300ms;
 }
 button {
