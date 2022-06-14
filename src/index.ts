@@ -1076,16 +1076,18 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			output,
 			props
 		);
-	case "translate":
-		if(Array.isArray(value)) {
+	case "translate": {
+		const translate = value as Component<Global, Local>["translate"];
+		if(translate) {
 			return addClass(
 				"transform",
-				`translate(${numberToMeasurement(value[0] as unknown as number)}, ${numberToMeasurement(value[1] as unknown as number)})`,
+				`translate(${numberToMeasurement(translate.x)}, ${numberToMeasurement(translate.y)})`,
 				output,
 				props
 			);
 		}
 		return props;
+	}
 	case "index":
 		return addClass(
 			"z-index",
