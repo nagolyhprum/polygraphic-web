@@ -45,7 +45,10 @@ export const html = <Global extends GlobalState, Local>(
 	) : Record<string, string | Buffer> => {
 		const result = json(root, name)(generateState);
 		const files : Record<string, string | Buffer> = {			
-			[`${name}.html`] : minify ? minifyHtml(document(result)) : document(result),
+			[`${name}.html`] : minify ? minifyHtml(document(result), {
+				collapseWhitespace: true,
+				collapseInlineTagWhitespace: true
+			}) : document(result),
 			[`${name}.css`] : minifyCss(`@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
 html, body {
 	display : flex;
