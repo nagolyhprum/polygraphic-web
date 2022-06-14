@@ -1474,7 +1474,7 @@ const document = ({
 	</head>
 	<body>
 		${html.join("")}
-		${scripts.map(src => `<script src="${src}"></script>`).join("")}
-		${js.length ? `<script src="./${name}.js"></script>` : ""}
+		${scripts.map(src => `<script defer src="${src}"></script>`).join("")}
+		${js.length ? `<script defer src="./${name}.js"></script>` : ""}
 	</body>
 </html>`;
