@@ -58,7 +58,7 @@ html, body {
 }
 * { 
 	box-sizing: border-box;
-	transition: opacity 300ms, width 300ms, height 300ms;
+	transition: opacity 300ms, width 300ms, height 300ms, transform 300ms;
 }
 button {
 	cursor : pointer;
@@ -841,12 +841,15 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		}
 		return props;
 	case "position":
-		return handleBox("", value as BoxProp<number | Array<unknown>>, addClass(
-			"position",
-			"absolute",
-			output,
-			props
-		), output);
+		if(component.name !== "fixed") {
+			addClass(
+				"position",
+				"absolute",
+				output,
+				props
+			);
+		}
+		return handleBox("", value as BoxProp<number | Array<unknown>>, props, output);
 	case "padding":
 	case "margin":
 	case "border":
@@ -1070,6 +1073,16 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			output,
 			props
 		);
+	case "translate":
+		if(Array.isArray(value)) {
+			return addClass(
+				"transform",
+				`translate(${numberToMeasurement(value[0] as unknown as number)}, ${numberToMeasurement(value[1] as unknown as number)})`,
+				output,
+				props
+			);
+		}
+		return props;
 	case "manifest":
 	case "markdown":
 	case "onDragEnd":
@@ -1281,6 +1294,7 @@ ${generated}});`);
 	case "columns":
 	case "direction":
 	case "weight":	
+	case "translate":
 		return;
 	}
 	failed(name);
