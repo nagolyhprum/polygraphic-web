@@ -21,19 +21,32 @@ import { DocumentOutput, Manifest, TagProps } from "./types";
 export * from "./types";
 import moment from "moment";
 import showdown from "showdown";
+import { minify as minifyHtml } from "html-minifier";
+import CleanCss from "clean-css";
+import UglifyJS from "uglify-js";
+
+
+const minifyCss = (css : string, minify : boolean) : string => {
+	return minify ? new CleanCss().minify(css).styles : css;
+};
+
+const minifyJs = (js : string, minify : boolean) : string => {
+	return minify ? UglifyJS.minify(`(function(window){${js}})(window);`).code : js;
+};
 
 const converter = new showdown.Converter();
 
 export const html = <Global extends GlobalState, Local>(
 	root : ComponentFromConfig<Global, Local>,
-	name : string
+	name : string,
+	minify = false
 ) => (
 		generateState : (config : (event : EventConfig<GlobalState, null, null>) => Global & Local) => Global & Local
 	) : Record<string, string | Buffer> => {
 		const result = json(root, name)(generateState);
 		const files : Record<string, string | Buffer> = {			
-			[`${name}.html`] : document(result),
-			[`${name}.css`] : `@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
+			[`${name}.html`] : minify ? minifyHtml(document(result)) : document(result),
+			[`${name}.css`] : minifyCss(`@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
 html, body {
 	display : flex;
 	width : 100%;
@@ -75,22 +88,22 @@ h1, h2, h3, p, span, a {
 	display : inline-block;
 }
 ${Object.keys(result.css.queries).map(query => {
-		return `${query}{${
+		return `${query}{\n\t${
 			Object.keys(result.css.queries?.[query] || {}).map(className => {
 				return `.${className}{${
 					Object.keys(result.css.queries?.[query]?.[className] || {}).map(styleName => {
 						return `${styleName}:${result.css.queries?.[query]?.[className]?.[styleName]}`;
 					}).join(";")}}`;
-			}).join("")}}`;
-	}).join("")}`,
+			}).join("\n\t")}}`;
+	}).join("\n")}`, minify),
 			...(result.js.length ? {
-				[`${name}.js`] : result.js.join("\n"),
+				[`${name}.js`] : minifyJs(result.js.join("\n"), minify),
 			} : {})
 		};
 		if(result.manifest) {
 			const manifest = result.manifest;
 			files[`${name}-manifest.json`] = JSON.stringify(manifest, null, "\t");
-			files[`${name}-service-worker.js`] = `
+			files[`${name}-service-worker.js`] = minifyJs(`
 var cacheName = "${name}";
 self.addEventListener("install", function(event) {
 	event.waitUntil(
@@ -124,7 +137,7 @@ self.addEventListener("fetch", function(event) {
 			})
 		})
 	);
-});`;
+});`, minify);
 	
 		}
 		return files;
