@@ -1024,23 +1024,21 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	case "queries": {
 		const queries = value as Component<Global, Local>["queries"];
 		if(queries) {
+			const from = output.css.query;
 			keys(queries).forEach(query => {
+				output.css.query = query as string;
 				keys(queries[query]).forEach(prop => {
+
 					handleProp({
 						component,
 						name: prop,
-						output: {
-							...output,
-							css: {
-								...output.css,
-								query: query as string
-							}
-						},
+						output,
 						props,
 						value: queries[query][prop]
 					});
 				});
 			});
+			output.css.query = from;
 		}
 		return props;
 	}
