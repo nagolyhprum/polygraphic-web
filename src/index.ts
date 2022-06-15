@@ -78,7 +78,7 @@ ${code}
 };
 
 const generateDependencies = (output : DocumentOutput) => {
-	Array.from(output.dependencies).forEach(dependency => {
+	return Array.from(output.dependencies).map(dependency => {
 		switch(dependency) {
 		case "onClick":
 			return eventDependency("onClick", `			
@@ -99,7 +99,7 @@ const generateDependencies = (output : DocumentOutput) => {
 	});
 	callback(local.value, local.index, wrapped)`, output);
 		}
-	});
+	}).filter(_ => _).join("\n");
 };
 
 const converter = new showdown.Converter();
