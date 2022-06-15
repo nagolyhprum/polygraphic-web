@@ -72,7 +72,7 @@ const minifyJs = (js : string, minify : boolean) : string => {
 const eventDependency = (name : string, code : string, output : DocumentOutput) => {
 	if(output.cache.has(`dependency:${name}`)) return;
 	output.cache.add(`dependency:${name}`);
-	output.js.push(`events[${name}] = function(component, local) {
+	output.js.push(`events["${name}"] = function(component, local) {
 ${code}
 };`);
 };
