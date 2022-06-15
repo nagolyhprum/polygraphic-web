@@ -71,7 +71,8 @@ const minifyJs = (js : string, minify : boolean) : string => {
 
 const converter = new showdown.Converter();
 
-const sharedJs = (minify : boolean) => minifyJs(`var adapters = {};
+const sharedJs = (output : DocumentOutput, minify : boolean) => minifyJs(`${javascriptBundle(output.dependencies)}
+var adapters = {};
 var events = {};
 var listeners = [];
 var isMobile = /mobi/i.test(window.navigator.userAgent);
@@ -499,8 +500,8 @@ export const html = <Global extends GlobalState, Local>(
 					}).join("\n\t")}}`;
 			}).join("\n"), minify),
 			...(result.js.length ? {
-				"shared.js" : sharedJs(minify),
-				[`${name}.js`] : minifyJs(result.js.join("\n") + "document.body.className = 'loaded';", minify),
+				"shared.js" : sharedJs(result, minify),
+				[`${name}.js`] : minifyJs(result.js.join("\n") + "document.body.className = 'loaded';bind(document.body, Local(global, 0));", minify),
 			} : {})
 		};
 		if(result.manifest) {
@@ -607,8 +608,7 @@ const json = <Global extends GlobalState, Local>(
 			output
 		});
 		if(output.js.length) {
-			output.js.unshift(`${javascriptBundle(output.dependencies)}
-${library(output.dependencies)}
+			output.js.unshift(`${library(output.dependencies)}
 ${output.manifest ? `
 if ("serviceWorker" in navigator) {
 	window.addEventListener("load", function() {
@@ -627,8 +627,7 @@ global.os = "web";
 ${output.manifest ? `global = localStorage.${name} ? JSON.parse(localStorage.${name}) : global;` : ""}
 ${output.manifest ? `onUpdate.push(function() {
 	localStorage.${name} = JSON.stringify(global);
-});` : ""}
-bind(document.body, Local(global, 0));`);
+});` : ""}`);
 		}
 		scripts.forEach(script => {
 			if(output.dependencies.has(script.dependency)) {
