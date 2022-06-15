@@ -80,6 +80,55 @@ ${code}
 const generateDependencies = (output : DocumentOutput) => {
 	return Array.from(output.dependencies).map(dependency => {
 		switch(dependency) {
+		case "onChange":
+			return eventDependency("onChange", `
+if(component.tagName.toLowerCase() === "select") {
+	component.onchange = function() {					
+		const value = this.value;
+		protect(function() {
+			callback(local.value, local.index, value);
+			update();
+		});
+	};
+} else if(component.type === "checkbox") {
+	component.onclick = function() {					
+		const checked = this.checked;
+		protect(function() {
+			callback(local.value, local.index, checked);
+			update();
+		});
+	};
+} else if(component.type === "date") {
+	component.oninput = function() {					
+		var value = this.valueAsDate;
+		if(value) {
+			var date = new Date(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate());
+			callback(local.value, local.index, date.getTime());
+		} else {
+			callback(local.value, local.index, -1);
+		}
+		update();
+	};
+} else {
+	component.oninput = function() {					
+		callback(local.value, local.index, this.value);
+		update();
+	};
+}`, output);
+		case "onEnter":
+			return eventDependency("onEnter", `			
+component.onkeypress = function(e) {					
+	if(e.which === 13) {
+		protect(function() {
+			callback(local.value, local.index);
+			update();
+		});
+	}
+};`, output);
+		case "onInit":
+			return eventDependency("onInit", `
+callback(local.value, local.index);
+update();`, output);
 		case "onResize":
 			return eventDependency("onResize", `
 const observer = new ResizeObserver(function(entries) {
@@ -407,52 +456,6 @@ function bind(root, local) {
 					callback(local.value, local.index);
 					update();
 				};
-			} else if(event === "onChange") {
-				if(component.tagName.toLowerCase() === "select") {
-					component.onchange = function() {					
-						const value = this.value;
-						protect(function() {
-							callback(local.value, local.index, value);
-							update();
-						});
-					};
-				} else if(component.type === "checkbox") {
-					component.onclick = function() {					
-						const checked = this.checked;
-						protect(function() {
-							callback(local.value, local.index, checked);
-							update();
-						});
-					};
-				} else if(component.type === "date") {
-					component.oninput = function() {					
-						var value = this.valueAsDate;
-						if(value) {
-							var date = new Date(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate());
-							callback(local.value, local.index, date.getTime());
-						} else {
-							callback(local.value, local.index, -1);
-						}
-						update();
-					};
-				} else {
-					component.oninput = function() {					
-						callback(local.value, local.index, this.value);
-						update();
-					};
-				}
-			} else if(event === "onEnter") {
-				component.onkeypress = function(e) {					
-					if(e.which === 13) {
-						protect(function() {
-							callback(local.value, local.index);
-							update();
-						});
-					}
-				};
-			} else if(event === "onInit") {
-				callback(local.value, local.index);
-				update();
 			}
 		});
 	});
