@@ -72,6 +72,7 @@ const minifyJs = (js : string, minify : boolean) : string => {
 const converter = new showdown.Converter();
 
 const sharedJs = (output : DocumentOutput, minify : boolean) => minifyJs(`${javascriptBundle(output.dependencies)}
+var onUpdate = [];
 var adapters = {};
 var events = {};
 var listeners = [];
