@@ -1440,11 +1440,12 @@ var socket = (function () {
 	dependency: "speech.speak",
 	code: `
 var utterance = new SpeechSynthesisUtterance();
+var voices = speechSynthesis.getVoices();
 speech.speak = function(config) {
 	function clean(input) {
 		return input.toLowerCase().replace(/[^a-z]/g, "");
 	}
-	var voice = speechSynthesis.getVoices().find(function(voice) {
+	var voice = voices.find(function(voice) {
 		return clean(voice.lang) === clean(config.lang || "en-US");
 	});
 	utterance.voice = voice;
