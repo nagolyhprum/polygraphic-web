@@ -72,7 +72,7 @@ const minifyJs = (js : string, minify : boolean) : string => {
 const eventDependency = (name : string, code : string, output : DocumentOutput) => {
 	if(output.cache.has(`dependency:${name}`)) return;
 	output.cache.add(`dependency:${name}`);
-	output.js.push(`events["${name}"] = function(component, local) {
+	output.js.push(`events["${name}"] = function(component, local, callback) {
 ${code}
 };`);
 };
@@ -117,346 +117,351 @@ const converter = new showdown.Converter();
 
 const sharedJs = (output : DocumentOutput, minify : boolean) => minifyJs(`${javascriptBundle(output.dependencies)}
 var onUpdate = [];
-var adapters = {};
 var events = {};
-var listeners = [];
-var isMobile = /mobi/i.test(window.navigator.userAgent);
-var events = {};
-function Local(value, index) {
-	return {
-		value : value,
-		index : index
-	};
-}
-function $(html) {
-	var div = document.createElement("div");
-	div.innerHTML = html;
-	var child = div.children[0];
-	return function() {
-		return child.cloneNode(true);
-	};
-}
-function setEvent(id, name, callback) {
-	events[id] = events[id] || {};
-	events[id][name] = callback;
-}
-
-function numberToMeasurement(input) {
-	if(input === null || input === undefined) {
-		return "";
-	}
-	if(0 < input && input < 1) {
-		return (input * 100) + "%";
-	} else if(input === ${WRAP}) {
-		return "auto";
-	} else if(input === ${MATCH}) {
-		return "100%";
-	} else {
-		return input + "px";
-	}
-}
-var protect = (function() {
-	var last = 0;
-	return function(callback) {
-		var now = Date.now();
-		if(now - last >= 300) {
-			last = now;
-			callback();
-		}
-	};
-})();
-function Component(component) {
-	var cache = {};
-	return new Proxy(component, {
-		get : function(target, key) {
-			if(key === "isMounted") {
-				return document.body.contains(component);
+var bind = (function() {
+	var windowSetTimeout = window.setTimeout;
+	// TODO@logan generate these:
+	var setTimeout = (function() {
+		return function(callback, ms) {
+			return windowSetTimeout(function() {
+				callback();
+				update();
+			}, ms);
+		};
+	})();
+	var speech = (function() {
+		var utterance = new SpeechSynthesisUtterance();
+		var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+		return {
+			speak: function(config) {
+				utterance.lang = config.lang || "en-US";
+				utterance.rate = config.rate || 1;
+				utterance.text = config.text || "";
+				speechSynthesis.cancel();
+				speechSynthesis.speak(utterance);
+			},
+			listen: function(config) {
+				recognition.onresult = function(e) {
+					config.onResult({
+						results: Array.from(e.results).map(function(array) {
+							return Array.from(array).map(function(alternative) {
+								return {
+									confidence: alternative.confidence,
+									transcript: alternative.transcript
+								}
+							});
+						})
+					});
+					update();
+				};
+				recognition.continuous = config.continuous || false;
+				recognition.lang = config.lang || "en-US";
+				recognition.interimResults = config.interimResults || false;
+				recognition.maxAlternatives = config.maxAlternatives || 1;
+				recognition.start();
 			}
-		},
-		set : function(target, key, value) {
-			if(!(key in cache) || cache[key] !== value) {
-				cache[key] = value;
-				switch(key) {
-					case "translate":
-						target.style.transform = "translate(" + numberToMeasurement(value.x) + "," + numberToMeasurement(value.y) + ")";
-						return;
-					case "src":
-						target.src = value;
-						return;
-					case "clickable":
-						target.style.pointerEvents = value ? "auto" : "none";
-						return;
-					case "width":
-					case "height":
-						target.style[key] = numberToMeasurement(value);
-						return;
-					case "focus":
-						windowSetTimeout(function() {
-							target.focus();
-							target.setSelectionRange(0, target.value.length);
-						}, 300);
-						return;
-					case "opacity":
-						target.style.opacity = value;
-						return;
-					case "enabled":
-						target.disabled = !value;
-						return;
-					case "placeholder":
-						target.placeholder = value;
-						return;
-					case "animation":
-						if(!value) return;
-						target.style.willChange = "opacity, transform";
-						function render() {
-							const progress = Math.max(Math.min((Date.now() - value.start) / 300, 1), 0)
-							if(progress < 1) {
-								requestAnimationFrame(render);
-							} else {
-								windowSetTimeout(function() {
-									target.style.willChange = "auto";
-								})
-							}
-							if(value.direction === "in" && value.name === "right") {
-								target.style.transform = "translateX(" + (100 - 100 * progress) + "%)";
-							}
-							if(value.direction === "out" && value.name === "right") {
-								target.style.transform = "translateX(" + (100 * progress) + "%)";
-							}
-							if(value.direction === "in" && value.name === "left") {
-								target.style.transform = "translateX(" + (-100 + 100 * progress) + "%)";
-							}
-							if(value.direction === "out" && value.name === "left") {
-								target.style.transform = "translateX(" + (-100 * progress) + "%)";
-							}
-							if(value.direction === "in" && value.name === "opacity") {
-								target.style.opacity = progress;
-							}
-							if(value.direction === "out" && value.name === "opacity") {
-								target.style.opacity = (1 - progress);
-							}
-						}
-						render();
-						return;
-					case "value":
-						if(target.type === "date") {
-							if(value === -1) {
-								target.valueAsDate = null;
-							} else {
-								var local = new Date(value);
-								target.valueAsDate = new Date(Date.UTC(local.getFullYear(), local.getMonth(), local.getDate()));
-							}
-						} else if(target.type === "checkbox") {
-							target.checked = value;
-						} else {
-							target.value = value;
-						}
-						return;
-					case "text":
-						target.innerText = value;
-						return;
-					case "data":
-						if(!cache.prevData) {
-							target.innerHTML = "";
-						}
-						var prev = cache.prevData || [];
-						if(!value) {
+		};
+	}());
+	// TODO@logan stop generating these
+	var adapters = {};
+	var listeners = [];
+	var isMobile = /mobi/i.test(window.navigator.userAgent);
+	function Local(value, index) {
+		return {
+			value : value,
+			index : index
+		};
+	}
+	function $(html) {
+		var div = document.createElement("div");
+		div.innerHTML = html;
+		var child = div.children[0];
+		return function() {
+			return child.cloneNode(true);
+		};
+	}
+	function setEvent(id, name, callback) {
+		events[id] = events[id] || {};
+		events[id][name] = callback;
+	}
+	
+	function numberToMeasurement(input) {
+		if(input === null || input === undefined) {
+			return "";
+		}
+		if(0 < input && input < 1) {
+			return (input * 100) + "%";
+		} else if(input === ${WRAP}) {
+			return "auto";
+		} else if(input === ${MATCH}) {
+			return "100%";
+		} else {
+			return input + "px";
+		}
+	}
+	var protect = (function() {
+		var last = 0;
+		return function(callback) {
+			var now = Date.now();
+			if(now - last >= 300) {
+				last = now;
+				callback();
+			}
+		};
+	})();
+	function Component(component) {
+		var cache = {};
+		return new Proxy(component, {
+			get : function(target, key) {
+				if(key === "isMounted") {
+					return document.body.contains(component);
+				}
+			},
+			set : function(target, key, value) {
+				if(!(key in cache) || cache[key] !== value) {
+					cache[key] = value;
+					switch(key) {
+						case "translate":
+							target.style.transform = "translate(" + numberToMeasurement(value.x) + "," + numberToMeasurement(value.y) + ")";
 							return;
-						}
-						var curr = value.map(function(it) {
-							return "id" in it ? it.id : it.key;
-						});
-						// REMOVE
-						var removed = [];
-						for(var i = prev.length - 1; i >= 0; i--) {
-							if(!curr.includes(prev[i])) {
-								prev.splice(i, 1);
-								removed.push(target.removeChild(target.children[i]));
-							}
-						}
-						// ADD
-						for(var i = 0; i < curr.length; i++) {
-							if(!prev.includes(curr[i])) {
-								var item = value[i];
-								// TODO : ATTEMPT TO REUSE REMOVED COMPONENTS
-								var child = adapters[target.dataset.id + "_" + item.adapter]();
-								bind(child, Local(item, i))
-								if(i < target.children.length) {
-									target.insertBefore(child, target.children[i]);
+						case "src":
+							target.src = value;
+							return;
+						case "clickable":
+							target.style.pointerEvents = value ? "auto" : "none";
+							return;
+						case "width":
+						case "height":
+							target.style[key] = numberToMeasurement(value);
+							return;
+						case "focus":
+							windowSetTimeout(function() {
+								target.focus();
+								target.setSelectionRange(0, target.value.length);
+							}, 300);
+							return;
+						case "opacity":
+							target.style.opacity = value;
+							return;
+						case "enabled":
+							target.disabled = !value;
+							return;
+						case "placeholder":
+							target.placeholder = value;
+							return;
+						case "animation":
+							if(!value) return;
+							target.style.willChange = "opacity, transform";
+							function render() {
+								const progress = Math.max(Math.min((Date.now() - value.start) / 300, 1), 0)
+								if(progress < 1) {
+									requestAnimationFrame(render);
 								} else {
-									target.appendChild(child);
+									windowSetTimeout(function() {
+										target.style.willChange = "auto";
+									})
+								}
+								if(value.direction === "in" && value.name === "right") {
+									target.style.transform = "translateX(" + (100 - 100 * progress) + "%)";
+								}
+								if(value.direction === "out" && value.name === "right") {
+									target.style.transform = "translateX(" + (100 * progress) + "%)";
+								}
+								if(value.direction === "in" && value.name === "left") {
+									target.style.transform = "translateX(" + (-100 + 100 * progress) + "%)";
+								}
+								if(value.direction === "out" && value.name === "left") {
+									target.style.transform = "translateX(" + (-100 * progress) + "%)";
+								}
+								if(value.direction === "in" && value.name === "opacity") {
+									target.style.opacity = progress;
+								}
+								if(value.direction === "out" && value.name === "opacity") {
+									target.style.opacity = (1 - progress);
 								}
 							}
-						}
-						// MOVE / UPDATE
-						for(var i = 0; i < target.children.length; i++) {
-							target.children[i].__local__.value = value[i];
-							target.children[i].__local__.index = i;
-						}
-						cache.prevData = curr;
-						target.value = cache.value;
-						return;
-					case "position":
-						target.style.top = typeof value.top === "number" ? value.top + "px" : "auto";
-						target.style.right = typeof value.right === "number" ? value.right + "px" : "auto";
-						target.style.bottom = typeof value.bottom === "number" ? value.bottom + "px" : "auto";
-						target.style.left = typeof value.left === "number" ? value.left + "px" : "auto";
-						return;
-					case "background":
-						target.style.background = value;
-						return;
-					case "visible":
-						target.style.display = value ? (target.style.flexDirection ? "flex" : "block") : "none";
-						return;
-					case "markdown":
-						target.innerHTML = converter.makeHtml(value);
-						return;
+							render();
+							return;
+						case "value":
+							if(target.type === "date") {
+								if(value === -1) {
+									target.valueAsDate = null;
+								} else {
+									var local = new Date(value);
+									target.valueAsDate = new Date(Date.UTC(local.getFullYear(), local.getMonth(), local.getDate()));
+								}
+							} else if(target.type === "checkbox") {
+								target.checked = value;
+							} else {
+								target.value = value;
+							}
+							return;
+						case "text":
+							target.innerText = value;
+							return;
+						case "data":
+							if(!cache.prevData) {
+								target.innerHTML = "";
+							}
+							var prev = cache.prevData || [];
+							if(!value) {
+								return;
+							}
+							var curr = value.map(function(it) {
+								return "id" in it ? it.id : it.key;
+							});
+							// REMOVE
+							var removed = [];
+							for(var i = prev.length - 1; i >= 0; i--) {
+								if(!curr.includes(prev[i])) {
+									prev.splice(i, 1);
+									removed.push(target.removeChild(target.children[i]));
+								}
+							}
+							// ADD
+							for(var i = 0; i < curr.length; i++) {
+								if(!prev.includes(curr[i])) {
+									var item = value[i];
+									// TODO : ATTEMPT TO REUSE REMOVED COMPONENTS
+									var child = adapters[target.dataset.id + "_" + item.adapter]();
+									bind(child, Local(item, i))
+									if(i < target.children.length) {
+										target.insertBefore(child, target.children[i]);
+									} else {
+										target.appendChild(child);
+									}
+								}
+							}
+							// MOVE / UPDATE
+							for(var i = 0; i < target.children.length; i++) {
+								target.children[i].__local__.value = value[i];
+								target.children[i].__local__.index = i;
+							}
+							cache.prevData = curr;
+							target.value = cache.value;
+							return;
+						case "position":
+							target.style.top = typeof value.top === "number" ? value.top + "px" : "auto";
+							target.style.right = typeof value.right === "number" ? value.right + "px" : "auto";
+							target.style.bottom = typeof value.bottom === "number" ? value.bottom + "px" : "auto";
+							target.style.left = typeof value.left === "number" ? value.left + "px" : "auto";
+							return;
+						case "background":
+							target.style.background = value;
+							return;
+						case "visible":
+							target.style.display = value ? (target.style.flexDirection ? "flex" : "block") : "none";
+							return;
+						case "markdown":
+							target.innerHTML = converter.makeHtml(value);
+							return;
+					}
 				}
 			}
-		}
-	});
-}
-var windowSetTimeout = window.setTimeout;
-var setTimeout = (function() {
-	return function(callback, ms) {
-		return windowSetTimeout(function() {
-			callback();
-			update();
-		}, ms);
-	};
-})();
-var update = (function() {
-	var timeout;
-	return function() {
-		clearTimeout(timeout);
-		timeout = windowSetTimeout(function() {
-			listeners.forEach(function (listener) {
-				listener.callback(listener.local.value, listener.local.index, listener.component)
-			});        
-			listeners = listeners.filter(function(listener) {
-				return listener.component.isMounted;
+		});
+	}
+	var update = (function() {
+		var timeout;
+		return function() {
+			clearTimeout(timeout);
+			timeout = windowSetTimeout(function() {
+				listeners.forEach(function (listener) {
+					listener.callback(listener.local.value, listener.local.index, listener.component)
+				});        
+				listeners = listeners.filter(function(listener) {
+					return listener.component.isMounted;
+				});
+				onUpdate.forEach(function(callback) {
+					callback();
+				});
 			});
-			onUpdate.forEach(function(callback) {
-				callback();
+		}
+	})();
+	function bind(root, local) {
+		root.__local__ = local;
+		Array.from(root.querySelectorAll("[data-id]")).concat(root.dataset.id ? [root] : []).forEach(function(component) {
+			var toBind = events[component.dataset.id];
+			if(!toBind) return;
+			Object.keys(toBind).forEach(function(event) {
+				var callback = toBind[event];
+				events[event](component, local, callback);
+				if(event === "onDrop") {
+					function prevent(e) {
+						e.preventDefault();
+						e.stopPropagation();
+						e.cancelBubble = true;
+						return false;
+					};
+					component.ondragenter = prevent
+					component.ondragleave = prevent
+					component.ondragover = prevent
+					component.ondrop = function() {
+						callback(local.value, local.index);
+						update();
+					};
+				} else if(event === "onDragStart") {
+					component.ondragstart = function() {
+						callback(local.value, local.index);
+						update();
+					};
+				} else if(event === "onDragEnd") {
+					component.ondragend = function() {
+						callback(local.value, local.index);
+						update();
+					};
+				} else if(event === "onChange") {
+					if(component.tagName.toLowerCase() === "select") {
+						component.onchange = function() {					
+							const value = this.value;
+							protect(function() {
+								callback(local.value, local.index, value);
+								update();
+							});
+						};
+					} else if(component.type === "checkbox") {
+						component.onclick = function() {					
+							const checked = this.checked;
+							protect(function() {
+								callback(local.value, local.index, checked);
+								update();
+							});
+						};
+					} else if(component.type === "date") {
+						component.oninput = function() {					
+							var value = this.valueAsDate;
+							if(value) {
+								var date = new Date(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate());
+								callback(local.value, local.index, date.getTime());
+							} else {
+								callback(local.value, local.index, -1);
+							}
+							update();
+						};
+					} else {
+						component.oninput = function() {					
+							callback(local.value, local.index, this.value);
+							update();
+						};
+					}
+				} else if(event === "onEnter") {
+					component.onkeypress = function(e) {					
+						if(e.which === 13) {
+							protect(function() {
+								callback(local.value, local.index);
+								update();
+							});
+						}
+					};
+				} else if(event === "onInit") {
+					callback(local.value, local.index);
+					update();
+				}
 			});
 		});
 	}
+	return bind;
 })();
-function bind(root, local) {
-	root.__local__ = local;
-	Array.from(root.querySelectorAll("[data-id]")).concat(root.dataset.id ? [root] : []).forEach(function(component) {
-		var toBind = events[component.dataset.id];
-		if(!toBind) return;
-		Object.keys(toBind).forEach(function(event) {
-			var callback = toBind[event];
-			events[event](component, local);
-			if(event === "onDrop") {
-				function prevent(e) {
-					e.preventDefault();
-					e.stopPropagation();
-					e.cancelBubble = true;
-					return false;
-				};
-				component.ondragenter = prevent
-				component.ondragleave = prevent
-				component.ondragover = prevent
-				component.ondrop = function() {
-					callback(local.value, local.index);
-					update();
-				};
-			} else if(event === "onDragStart") {
-				component.ondragstart = function() {
-					callback(local.value, local.index);
-					update();
-				};
-			} else if(event === "onDragEnd") {
-				component.ondragend = function() {
-					callback(local.value, local.index);
-					update();
-				};
-			} else if(event === "onChange") {
-				if(component.tagName.toLowerCase() === "select") {
-					component.onchange = function() {					
-						const value = this.value;
-						protect(function() {
-							callback(local.value, local.index, value);
-							update();
-						});
-					};
-				} else if(component.type === "checkbox") {
-					component.onclick = function() {					
-						const checked = this.checked;
-						protect(function() {
-							callback(local.value, local.index, checked);
-							update();
-						});
-					};
-				} else if(component.type === "date") {
-					component.oninput = function() {					
-						var value = this.valueAsDate;
-						if(value) {
-							var date = new Date(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate());
-							callback(local.value, local.index, date.getTime());
-						} else {
-							callback(local.value, local.index, -1);
-						}
-						update();
-					};
-				} else {
-					component.oninput = function() {					
-						callback(local.value, local.index, this.value);
-						update();
-					};
-				}
-			} else if(event === "onEnter") {
-				component.onkeypress = function(e) {					
-					if(e.which === 13) {
-						protect(function() {
-							callback(local.value, local.index);
-							update();
-						});
-					}
-				};
-			} else if(event === "onInit") {
-				callback(local.value, local.index);
-				update();
-			}
-		});
-	});
-}
-var speech = (function() {
-	var utterance = new SpeechSynthesisUtterance();
-	var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-	return {
-		speak: function(config) {
-			utterance.lang = config.lang || "en-US";
-			utterance.rate = config.rate || 1;
-			utterance.text = config.text || "";
-			speechSynthesis.cancel();
-			speechSynthesis.speak(utterance);
-		},
-		listen: function(config) {
-			recognition.onresult = function(e) {
-				config.onResult({
-					results: Array.from(e.results).map(function(array) {
-						return Array.from(array).map(function(alternative) {
-							return {
-								confidence: alternative.confidence,
-								transcript: alternative.transcript
-							}
-						});
-					})
-				});
-				update();
-			};
-			recognition.continuous = config.continuous || false;
-			recognition.lang = config.lang || "en-US";
-			recognition.interimResults = config.interimResults || false;
-			recognition.maxAlternatives = config.maxAlternatives || 1;
-			recognition.start();
-		}
-	};
-}());`, minify);
+`, minify);
 
 const sharedCss = (minify : boolean) => minifyCss(`@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
 html, body {
