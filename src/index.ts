@@ -118,7 +118,7 @@ const converter = new showdown.Converter();
 const sharedJs = (output : DocumentOutput, minify : boolean) => minifyJs(`${javascriptBundle(output.dependencies)}
 var onUpdate = [];
 var events = {};
-var bind = (function() {
+var polly = (function() {
 	var windowSetTimeout = window.setTimeout;
 	// TODO@logan generate these:
 	var setTimeout = (function() {
@@ -459,8 +459,13 @@ var bind = (function() {
 			});
 		});
 	}
-	return bind;
+	return {
+		bind : bind,
+		setEvent : setEvent
+	};
 })();
+var bind = polly.bind;
+var setEvent  = polly.setEvent;
 `, minify);
 
 const sharedCss = (minify : boolean) => minifyCss(`@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
