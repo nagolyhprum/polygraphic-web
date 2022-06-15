@@ -132,7 +132,7 @@ var protect = (function() {
 		}
 	};
 })();
-var polly = (function() {
+var bind = (function() {
 	var windowSetTimeout = window.setTimeout;
 	// TODO@logan generate these:
 	var setTimeout = (function() {
