@@ -118,6 +118,20 @@ const converter = new showdown.Converter();
 const sharedJs = (output : DocumentOutput, minify : boolean) => minifyJs(`${javascriptBundle(output.dependencies)}
 var onUpdate = [];
 var events = {};
+function setEvent(id, name, callback) {
+	events[id] = events[id] || {};
+	events[id][name] = callback;
+}
+var protect = (function() {
+	var last = 0;
+	return function(callback) {
+		var now = Date.now();
+		if(now - last >= 300) {
+			last = now;
+			callback();
+		}
+	};
+})();
 var polly = (function() {
 	var windowSetTimeout = window.setTimeout;
 	// TODO@logan generate these:
@@ -180,11 +194,6 @@ var polly = (function() {
 			return child.cloneNode(true);
 		};
 	}
-	function setEvent(id, name, callback) {
-		events[id] = events[id] || {};
-		events[id][name] = callback;
-	}
-	
 	function numberToMeasurement(input) {
 		if(input === null || input === undefined) {
 			return "";
@@ -199,16 +208,6 @@ var polly = (function() {
 			return input + "px";
 		}
 	}
-	var protect = (function() {
-		var last = 0;
-		return function(callback) {
-			var now = Date.now();
-			if(now - last >= 300) {
-				last = now;
-				callback();
-			}
-		};
-	})();
 	function Component(component) {
 		var cache = {};
 		return new Proxy(component, {
@@ -459,13 +458,8 @@ var polly = (function() {
 			});
 		});
 	}
-	return {
-		bind : bind,
-		setEvent : setEvent
-	};
+	return bind;
 })();
-var bind = polly.bind;
-var setEvent  = polly.setEvent;
 `, minify);
 
 const sharedCss = (minify : boolean) => minifyCss(`@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
