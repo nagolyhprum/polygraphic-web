@@ -80,6 +80,17 @@ ${code}
 const generateDependencies = (output : DocumentOutput) => {
 	return Array.from(output.dependencies).map(dependency => {
 		switch(dependency) {
+		case "onResize":
+			return eventDependency("onResize", `
+const observer = new ResizeObserver(function(entries) {
+	const rect = component.getBoundingClientRect();
+	callback(local.value, local.index, {
+		width: rect.width,
+		height: rect.height,
+	});
+	update();
+});
+observer.observe(component);`, output);
 		case "onClick":
 			return eventDependency("onClick", `			
 	component.onclick = function() {
@@ -339,17 +350,7 @@ function bind(root, local) {
 		Object.keys(toBind).forEach(function(event) {
 			var callback = toBind[event];
 			events[event](component, local);
-			if(event === "onResize") {
-				const observer = new ResizeObserver(function(entries) {
-					const rect = component.getBoundingClientRect();
-					callback(local.value, local.index, {
-						width: rect.width,
-						height: rect.height,
-					});
-					update();
-				});
-				observer.observe(component);
-			} else if(event === "onDrop") {
+			if(event === "onDrop") {
 				function prevent(e) {
 					e.preventDefault();
 					e.stopPropagation();
