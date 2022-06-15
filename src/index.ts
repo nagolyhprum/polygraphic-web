@@ -36,7 +36,7 @@ const getDisplay = <Global extends GlobalState, Local>(component : Component<Glo
 	case "input":
 	case "option":
 	case "select":
-	case "progress":
+	case "progress": // does not matter
 	case "scrollable":
 	case "stack":
 		return "block";
@@ -71,193 +71,7 @@ const minifyJs = (js : string, minify : boolean) : string => {
 
 const converter = new showdown.Converter();
 
-export const html = <Global extends GlobalState, Local>(
-	root : ComponentFromConfig<Global, Local>,
-	name : string,
-	minify = false
-) => (
-		generateState : (config : (event : EventConfig<GlobalState, null, null>) => Global & Local) => Global & Local
-	) : Record<string, string | Buffer> => {
-		const result = json(root, name)(generateState);
-		const files : Record<string, string | Buffer> = {			
-			[`${name}.html`] : minify ? minifyHtml(document(result), {
-				collapseWhitespace: true,
-				collapseInlineTagWhitespace: true
-			}) : document(result),
-			[`${name}.css`] : minifyCss(`${Object.keys(result.css.queries).map(query => {
-				return `${query}{\n\t${
-					Object.keys(result.css.queries?.[query] || {}).map(className => {
-						return `.${className}{${
-							Object.keys(result.css.queries?.[query]?.[className] || {}).map(styleName => {
-								return `${styleName}:${result.css.queries?.[query]?.[className]?.[styleName]}`;
-							}).join(";")}}`;
-					}).join("\n\t")}}`;
-			}).join("\n")}
-@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
-html, body {
-	display : flex;
-	width : 100%;
-	min-height : 100%;
-	font-size : 16px;
-}
-* { 
-	box-sizing: border-box;
-}
-.loaded * {
-	transition: opacity 300ms, width 300ms, height 300ms, transform 300ms;
-}
-button {
-	cursor : pointer;
-}
-select, input, button, html, body, nav, footer, header, main, section, h1, h2, h3, p, span, a {
-	font-family: 'Roboto', sans-serif;
-	text-align : start;
-	background : transparent;
-	margin : 0;
-	padding : 0;
-	border : 0;
-	font-size : 16px;
-	text-decoration : none;
-}
-.progress {
-	border: 3px solid transparent;
-	border-radius: 50%;
-	animation: spin 1s ease-in-out infinite;
-	-webkit-animation: spin 1s ease-in-out infinite;
-}
-@keyframes spin {
-	to { -webkit-transform: rotate(360deg); }
-}
-@-webkit-keyframes spin {
-	to { -webkit-transform: rotate(360deg); }
-}`, minify),
-			...(result.js.length ? {
-				[`${name}.js`] : minifyJs(result.js.join("\n") + "document.body.className = 'loaded';", minify),
-			} : {})
-		};
-		if(result.manifest) {
-			const manifest = result.manifest;
-			files[`${name}-manifest.json`] = JSON.stringify(manifest, null, "\t");
-			files[`${name}-service-worker.js`] = minifyJs(`
-var cacheName = "${name}";
-self.addEventListener("install", function(event) {
-	event.waitUntil(
-		caches.open(cacheName).then(function(cache) {
-			return cache.addAll([
-				${Object.keys(files).map(it => `"${it}"`).join(",\n\t\t\t\t")}
-			]);
-		})
-	);
-	self.skipWaiting();
-});
-self.addEventListener("activate", function(event) {
-	event.waitUntil(
-		caches.keys().then(function(cacheNames) {
-			return Promise.all(cacheNames.map(function(cacheName) {
-				return caches.delete(cacheName);
-			}));
-		})
-	);
-});
-self.addEventListener("fetch", function(event) {
-	event.respondWith(
-		caches.open(cacheName).then(function(cache) {
-			return fetch(event.request).then(function(response) {
-				if(event.request.method.toLowerCase() === "get") {
-					cache.put(event.request, response.clone());
-				}
-				return response;
-			}).catch(function() {
-				return cache.match(event.request);
-			})
-		})
-	);
-});`, minify);
-	
-		}
-		return files;
-	};
-
-const scripts = [{
-	dependency : "moment",
-	src : "https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js",
-}, {
-	dependency : "event.markdown",
-	src : "https://cdnjs.cloudflare.com/ajax/libs/showdown/2.0.3/showdown.min.js"
-}, {
-	dependency : "socket",
-	src : "https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"
-}];
-
-const json = <Global extends GlobalState, Local>(
-	root : ComponentFromConfig<Global, Local>,
-	name : string
-) => (
-		
-		generateState : (config : (event : EventConfig<GlobalState, null, null>) => Global & Local) => Global & Local
-	) : DocumentOutput => { 
-		const dependencies = new Set<string>([]);
-		const generated = compile(generateState as unknown as (config : any) => ProgrammingLanguage, dependencies);
-		const state = execute(generated, {
-			...stubs,
-			moment
-		}) as Global & Local;
-		state.ui = {};
-		state.features = ["speech.listen"];
-		const component = root({
-			parent : {
-				width : MATCH,
-				height : MATCH,
-				name : "root"
-			},
-			global : state,
-			local : state
-		});
-		const output : DocumentOutput = {
-			name,
-			dependencies : new Set<string>([]),
-			js : [],
-			head : {
-				title : "",
-				links: {},
-				metas: {}
-			},
-			css : {
-				cache : {},
-				letter : "a",
-				queries : {},
-				query : "@media all"
-			},
-			html : [],
-			scripts : [],
-			cache : new Set<string>([]),
-		};
-		handle({
-			component,
-			global: state,
-			local : state,
-			output
-		});
-		if(output.js.length) {
-			output.js.unshift(`${javascriptBundle(output.dependencies)}
-${library(output.dependencies)}
-${output.manifest ? `
-if ("serviceWorker" in navigator) {
-	window.addEventListener("load", function() {
-		navigator.serviceWorker.register("${name}-service-worker.js", {
-			scope: "${output.manifest.start_url}"
-		}).then(function(registration) {
-			console.log("Registration successful, scope is:", registration);
-		}).catch(function(error) {
-			console.log("Service worker registration failed, error:", error);
-		});
-	});
-}
-` : ""}
-var global = ${javascript(generated, "")};
-global.os = "web";
-${output.manifest ? `global = localStorage.${name} ? JSON.parse(localStorage.${name}) : global;` : ""}
-var adapters = {};
+const sharedJs = (minify : boolean) => minifyJs(`var adapters = {};
 var events = {};
 var listeners = [];
 var isMobile = /mobi/i.test(window.navigator.userAgent);
@@ -315,7 +129,6 @@ function Component(component) {
 		set : function(target, key, value) {
 			if(!(key in cache) || cache[key] !== value) {
 				cache[key] = value;
-				${ /* TODO : LOOK AT DEPENDENCIES */ "" }
 				switch(key) {
 					case "translate":
 						target.style.transform = "translate(" + numberToMeasurement(value.x) + "," + numberToMeasurement(value.y) + ")";
@@ -476,7 +289,9 @@ var update = (function() {
 			listeners = listeners.filter(function(listener) {
 				return listener.component.isMounted;
 			});
-			${output.manifest ? `localStorage.${name} = JSON.stringify(global);` : ""}
+			onUpdate.forEach(function(callback) {
+				callback();
+			});
 		});
 	}
 })();
@@ -619,8 +434,201 @@ var speech = (function() {
 			recognition.start();
 		}
 	};
-}());`);
-			output.js.push("bind(document.body, Local(global, 0));");
+}());`, minify);
+
+const sharedCss = (minify : boolean) => minifyCss(`@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
+html, body {
+	display : flex;
+	width : 100%;
+	min-height : 100%;
+	font-size : 16px;
+}
+* { 
+	box-sizing: border-box;
+}
+.loaded * {
+	transition: opacity 300ms, width 300ms, height 300ms, transform 300ms;
+}
+button {
+	cursor : pointer;
+}
+select, input, button, html, body, nav, footer, header, main, section, h1, h2, h3, p, span, a {
+	font-family: 'Roboto', sans-serif;
+	text-align : start;
+	background : transparent;
+	margin : 0;
+	padding : 0;
+	border : 0;
+	font-size : 16px;
+	text-decoration : none;
+}
+.progress {
+	border: 3px solid transparent;
+	border-radius: 50%;
+	animation: spin 1s ease-in-out infinite;
+	-webkit-animation: spin 1s ease-in-out infinite;
+}
+@keyframes spin {
+	to { -webkit-transform: rotate(360deg); }
+}
+@-webkit-keyframes spin {
+	to { -webkit-transform: rotate(360deg); }
+}`, minify);
+
+export const html = <Global extends GlobalState, Local>(
+	root : ComponentFromConfig<Global, Local>,
+	name : string,
+	minify = false
+) => (
+		generateState : (config : (event : EventConfig<GlobalState, null, null>) => Global & Local) => Global & Local
+	) : Record<string, string | Buffer> => {
+		const result = json(root, name)(generateState);
+		const files : Record<string, string | Buffer> = {			
+			[`${name}.html`] : minify ? minifyHtml(document(result), {
+				collapseWhitespace: true,
+				collapseInlineTagWhitespace: true
+			}) : document(result),
+			"shared.css" : sharedCss(minify),
+			[`${name}.css`] : minifyCss(Object.keys(result.css.queries).map(query => {
+				return `${query}{\n\t${
+					Object.keys(result.css.queries?.[query] || {}).map(className => {
+						return `.${className}{${
+							Object.keys(result.css.queries?.[query]?.[className] || {}).map(styleName => {
+								return `${styleName}:${result.css.queries?.[query]?.[className]?.[styleName]}`;
+							}).join(";")}}`;
+					}).join("\n\t")}}`;
+			}).join("\n"), minify),
+			...(result.js.length ? {
+				"shared.js" : sharedJs(minify),
+				[`${name}.js`] : minifyJs(result.js.join("\n") + "document.body.className = 'loaded';", minify),
+			} : {})
+		};
+		if(result.manifest) {
+			const manifest = result.manifest;
+			files[`${name}-manifest.json`] = JSON.stringify(manifest, null, "\t");
+			files[`${name}-service-worker.js`] = minifyJs(`
+var cacheName = "${name}";
+self.addEventListener("install", function(event) {
+	event.waitUntil(
+		caches.open(cacheName).then(function(cache) {
+			return cache.addAll([
+				${Object.keys(files).map(it => `"${it}"`).join(",\n\t\t\t\t")}
+			]);
+		})
+	);
+	self.skipWaiting();
+});
+self.addEventListener("activate", function(event) {
+	event.waitUntil(
+		caches.keys().then(function(cacheNames) {
+			return Promise.all(cacheNames.map(function(cacheName) {
+				return caches.delete(cacheName);
+			}));
+		})
+	);
+});
+self.addEventListener("fetch", function(event) {
+	event.respondWith(
+		caches.open(cacheName).then(function(cache) {
+			return fetch(event.request).then(function(response) {
+				if(event.request.method.toLowerCase() === "get") {
+					cache.put(event.request, response.clone());
+				}
+				return response;
+			}).catch(function() {
+				return cache.match(event.request);
+			})
+		})
+	);
+});`, minify);
+	
+		}
+		return files;
+	};
+
+const scripts = [{
+	dependency : "moment",
+	src : "https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js",
+}, {
+	dependency : "event.markdown",
+	src : "https://cdnjs.cloudflare.com/ajax/libs/showdown/2.0.3/showdown.min.js"
+}, {
+	dependency : "socket",
+	src : "https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"
+}];
+
+const json = <Global extends GlobalState, Local>(
+	root : ComponentFromConfig<Global, Local>,
+	name : string
+) => (
+		
+		generateState : (config : (event : EventConfig<GlobalState, null, null>) => Global & Local) => Global & Local
+	) : DocumentOutput => { 
+		const dependencies = new Set<string>([]);
+		const generated = compile(generateState as unknown as (config : any) => ProgrammingLanguage, dependencies);
+		const state = execute(generated, {
+			...stubs,
+			moment
+		}) as Global & Local;
+		state.ui = {};
+		state.features = ["speech.listen"];
+		const component = root({
+			parent : {
+				width : MATCH,
+				height : MATCH,
+				name : "root"
+			},
+			global : state,
+			local : state
+		});
+		const output : DocumentOutput = {
+			name,
+			dependencies : new Set<string>([]),
+			js : [],
+			head : {
+				title : "",
+				links: {},
+				metas: {}
+			},
+			css : {
+				cache : {},
+				letter : "a",
+				queries : {},
+				query : "@media all"
+			},
+			html : [],
+			scripts : [],
+			cache : new Set<string>([]),
+		};
+		handle({
+			component,
+			global: state,
+			local : state,
+			output
+		});
+		if(output.js.length) {
+			output.js.unshift(`${javascriptBundle(output.dependencies)}
+${library(output.dependencies)}
+${output.manifest ? `
+if ("serviceWorker" in navigator) {
+	window.addEventListener("load", function() {
+		navigator.serviceWorker.register("${name}-service-worker.js", {
+			scope: "${output.manifest.start_url}"
+		}).then(function(registration) {
+			console.log("Registration successful, scope is:", registration);
+		}).catch(function(error) {
+			console.log("Service worker registration failed, error:", error);
+		});
+	});
+}
+` : ""}
+var global = ${javascript(generated, "")};
+global.os = "web";
+${output.manifest ? `global = localStorage.${name} ? JSON.parse(localStorage.${name}) : global;` : ""}
+${output.manifest ? `onUpdate.push(function() {
+	localStorage.${name} = JSON.stringify(global);
+});` : ""}
+bind(document.body, Local(global, 0));`);
 		}
 		scripts.forEach(script => {
 			if(output.dependencies.has(script.dependency)) {
@@ -1489,12 +1497,13 @@ const document = ({
 	}${
 		Object.keys(links).map(key => `<link rel="${key}" href="${links[key]}" />`).join("")
 	}`}
-		<link href="./${name}.css" rel="stylesheet" />
+		<link href="/shared.css" rel="stylesheet" />
+		<link href="/${name}.css" rel="stylesheet" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 	</head>
 	<body>
 		${html.join("")}
 		${scripts.map(src => `<script defer src="${src}"></script>`).join("")}
-		${js.length ? `<script defer src="./${name}.js"></script>` : ""}
+		${js.length ? `<script defer src="/shared.js"></script><script defer src="/${name}.js"></script>` : ""}
 	</body>
 </html>`;
