@@ -1440,19 +1440,25 @@ var socket = (function () {
 	dependency: "speech.speak",
 	code: `
 var utterance = new SpeechSynthesisUtterance();
-var voices = speechSynthesis.getVoices();
 speech.speak = function(config) {
 	function clean(input) {
 		return input.toLowerCase().replace(/[^a-z]/g, "");
 	}
+	var voices = speechSynthesis.getVoices();
 	var voice = voices.find(function(voice) {
 		return clean(voice.lang) === clean(config.lang || "en-US");
 	});
-	utterance.voice = voice;
-	utterance.rate = config.rate || 1;
-	utterance.text = config.text || "";
-	speechSynthesis.cancel();
-	speechSynthesis.speak(utterance);
+	if(voices.length && voice) {
+		utterance.voice = voice;
+		utterance.rate = config.rate || 1;
+		utterance.text = config.text || "";
+		speechSynthesis.cancel();
+		speechSynthesis.speak(utterance);
+	} else {
+		setTimeout(function() {
+			speech.speak(config);
+		}, 100);
+	}
 };`
 }, {
 	dependency : "speech.listen",
