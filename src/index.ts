@@ -846,7 +846,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			);
 		}
 		if(value === "progress") {
-			props.class = "progress";
+			props.className.add("progress");
 		}
 		if(value === "stack") {
 			addClass(
