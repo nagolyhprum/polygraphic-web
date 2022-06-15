@@ -503,7 +503,7 @@ export const html = <Global extends GlobalState, Local>(
 	name : string,
 	minify = false
 ) => (
-		generateState : (config : (event : EventConfig<GlobalState, null, null>) => Global & Local) => Global & Local
+		generateState : (event : EventConfig<GlobalState, null, null>) => Global & Local
 	) : Record<string, string | Buffer> => {
 		const result = json(root, name)(generateState);
 		const files : Record<string, string | Buffer> = {			
@@ -585,7 +585,7 @@ const json = <Global extends GlobalState, Local>(
 	name : string
 ) => (
 		
-		generateState : (config : (event : EventConfig<GlobalState, null, null>) => Global & Local) => Global & Local
+		generateState : (event : EventConfig<GlobalState, null, null>) => Global & Local
 	) : DocumentOutput => { 
 		const dependencies = new Set<string>([]);
 		const generated = compile(generateState as unknown as (config : any) => ProgrammingLanguage, dependencies);
