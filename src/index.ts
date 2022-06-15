@@ -117,6 +117,7 @@ const converter = new showdown.Converter();
 
 const sharedJs = (output : DocumentOutput, minify : boolean) => minifyJs(`${javascriptBundle(output.dependencies)}
 // TODO@logan generate these:
+var windowSetTimeout = window.setTimeout;
 var setTimeout = (function() {
 	return function(callback, ms) {
 		return windowSetTimeout(function() {
@@ -181,7 +182,6 @@ function Local(value, index) {
 		index : index
 	};
 }
-var windowSetTimeout = window.setTimeout;
 var adapters = {};
 var listeners = [];
 var isMobile = /mobi/i.test(window.navigator.userAgent);
