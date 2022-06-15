@@ -164,51 +164,7 @@ observer.observe(component);`, output);
 
 const converter = new showdown.Converter();
 
-const sharedJs = (output : DocumentOutput, minify : boolean) => minifyJs(`${javascriptBundle(output.dependencies)}
-// TODO@logan generate these:
-var windowSetTimeout = window.setTimeout;
-var setTimeout = (function() {
-	return function(callback, ms) {
-		return windowSetTimeout(function() {
-			callback();
-			update();
-		}, ms);
-	};
-})();
-var speech = (function() {
-	var utterance = new SpeechSynthesisUtterance();
-	var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-	return {
-		speak: function(config) {
-			utterance.lang = config.lang || "en-US";
-			utterance.rate = config.rate || 1;
-			utterance.text = config.text || "";
-			speechSynthesis.cancel();
-			speechSynthesis.speak(utterance);
-		},
-		listen: function(config) {
-			recognition.onresult = function(e) {
-				config.onResult({
-					results: Array.from(e.results).map(function(array) {
-						return Array.from(array).map(function(alternative) {
-							return {
-								confidence: alternative.confidence,
-								transcript: alternative.transcript
-							}
-						});
-					})
-				});
-				update();
-			};
-			recognition.continuous = config.continuous || false;
-			recognition.lang = config.lang || "en-US";
-			recognition.interimResults = config.interimResults || false;
-			recognition.maxAlternatives = config.maxAlternatives || 1;
-			recognition.start();
-		}
-	};
-}());
-// TODO@logan stop generating these
+const sharedJs = (output : DocumentOutput, minify : boolean) => minifyJs(`var windowSetTimeout = window.setTimeout;
 var onUpdate = [];
 var events = {};
 function setEvent(id, name, callback) {
@@ -633,7 +589,8 @@ const json = <Global extends GlobalState, Local>(
 			output
 		});
 		if(output.js.length) {
-			output.js.unshift(`${library(output.dependencies)}
+			output.js.unshift(`${javascriptBundle(output.dependencies)}
+${library(output.dependencies)}
 ${generateDependencies(output)}
 ${output.manifest ? `
 if ("serviceWorker" in navigator) {
@@ -1449,6 +1406,17 @@ const handle = <Global extends GlobalState, Local>({
 };
 
 const library = (dependencies : Set<string>) => [{
+	dependency : "setTimeout",
+	code: `
+var setTimeout = (function() {
+	return function(callback, ms) {
+		return windowSetTimeout(function() {
+			callback();
+			update();
+		}, ms);
+	};
+})();`
+}, {
 	dependency : "event.markdown",
 	code : "var converter = new showdown.Converter();"
 }, {
@@ -1468,6 +1436,17 @@ var socket = (function () {
 }, {
 	dependency : "speech",
 	code : "var speech = {};"
+}, {
+	dependency: "speech.speak",
+	code: `
+var utterance = new SpeechSynthesisUtterance();
+speech.speak = function(config) {
+	utterance.lang = config.lang || "en-US";
+	utterance.rate = config.rate || 1;
+	utterance.text = config.text || "";
+	speechSynthesis.cancel();
+	speechSynthesis.speak(utterance);
+};`
 }, {
 	dependency : "speech.listen",
 	code : `
@@ -1510,19 +1489,21 @@ const document = ({
 		metas,
 		links
 	}
-} : DocumentOutput) => `<!doctype html>
+} : DocumentOutput) => {
+	return `<!doctype html>
     <html lang="en">
     <head>
-		${manifest ? `
-			<title>${manifest.name}</title>
+		${`
+			<title>${manifest?.name ?? title}</title>
+			${manifest ? `
 			<meta name="description" content="${manifest.description}" />
 			<meta name="theme-color" content="${manifest.theme_color}" />
 			<link rel="manifest" href="./${name}-manifest.json" />
-		` : `<title>${title}</title>${
-		Object.keys(metas).map(key => `<meta name="${key}" content="${metas[key]}" />`).join("")
-	}${
-		Object.keys(links).map(key => `<link rel="${key}" href="${links[key]}" />`).join("")
-	}`}
+				` : ""}${
+	Object.keys(metas).map(key => `<meta name="${key}" content="${metas[key]}" />`).join("")
+}${
+	Object.keys(links).map(key => `<link rel="${key}" href="${links[key]}" />`).join("")
+}`}
 		<link href="/shared.css" rel="stylesheet" />
 		<link href="/${name}.css" rel="stylesheet" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -1533,3 +1514,4 @@ const document = ({
 		${js.length ? `<script defer src="/shared.js"></script><script defer src="/${name}.js"></script>` : ""}
 	</body>
 </html>`;
+};
