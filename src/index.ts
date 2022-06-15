@@ -25,6 +25,41 @@ import { minify as minifyHtml } from "html-minifier";
 import CleanCss from "clean-css";
 import UglifyJS from "uglify-js";
 
+const getDisplay = <Global extends GlobalState, Local>(component : Component<Global, Local>) : string => {
+	switch(component.name) {	
+	case "h1": //text
+	case "h2":
+	case "h3":
+	case "p":
+	case "checkbox":  //input
+	case "date":
+	case "input":
+	case "option":
+	case "select":
+	case "progress":
+	case "scrollable":
+	case "stack":
+		return "block";
+	case "button":
+	case "column":
+	case "fixed":
+	case "flex":
+	case "footer":
+	case "header":
+	case "main":
+	case "nav":
+	case "root":
+	case "section":
+	case "row":
+		return "flex";
+	case "grid":
+		return "grid";
+	case "text":
+	case "anchor":
+	case "image":
+		return "inline-block";
+	}
+};
 
 const minifyCss = (css : string, minify : boolean) : string => {
 	return minify ? new CleanCss().minify(css).styles : css;
@@ -75,7 +110,6 @@ button {
 	cursor : pointer;
 }
 select, input, button, html, body, nav, footer, header, main, section, h1, h2, h3, p, span, a {
-	display : inline-flex;
 	font-family: 'Roboto', sans-serif;
 	text-align : start;
 	background : transparent;
@@ -86,7 +120,6 @@ select, input, button, html, body, nav, footer, header, main, section, h1, h2, h
 	text-decoration : none;
 }
 .progress {
-	display: inline-block;
 	border: 3px solid transparent;
 	border-radius: 50%;
 	animation: spin 1s ease-in-out infinite;
@@ -97,9 +130,6 @@ select, input, button, html, body, nav, footer, header, main, section, h1, h2, h
 }
 @-webkit-keyframes spin {
 	to { -webkit-transform: rotate(360deg); }
-}
-h1, h2, h3, p, span, a {
-	display : inline-block;
 }`, minify),
 			...(result.js.length ? {
 				[`${name}.js`] : minifyJs(result.js.join("\n") + "document.body.className = 'loaded';", minify),
@@ -768,6 +798,12 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		}
 		return props;
 	case "name":
+		addClass(
+			"display",
+			getDisplay(component),
+			output,
+			props
+		);
 		if(value === "fixed") {
 			addClass(
 				"position",
@@ -786,30 +822,14 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 				output,
 				props
 			);
-		} else if([
+		}
+		if([
 			"row", 
-			"column", 
-			"flex"
+			"column"
 		].includes(value as string)) {
 			addClass(
-				"display",
-				"flex",
-				output,
-				props
-			);
-			if(["row", "column"].includes(value as string)) {
-				addClass(
-					"flex-direction",
-					value as string,
-					output,
-					props
-				);
-			}
-		}
-		if(value === "grid") {
-			addClass(
-				"display",
-				"grid",
+				"flex-direction",
+				value as string,
 				output,
 				props
 			);
@@ -863,14 +883,12 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	case "border":
 		return handleBox(`${name}-`, value as BoxProp<number | Array<unknown>>, props, output);
 	case "visible":
-		if(!value) {
-			addClass(
-				"display",
-				"none",
-				output,
-				props
-			);
-		}
+		addClass(
+			"display",
+			value ? getDisplay(component) : "none",
+			output,
+			props
+		);
 		return props;
 	case "value":
 		props.value = value as string;
