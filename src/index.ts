@@ -66,7 +66,7 @@ const minifyCss = (css : string, minify : boolean) : string => {
 };
 
 const minifyJs = (js : string, minify : boolean) : string => {
-	return minify ? UglifyJS.minify(`(function(window){${js}})(window);`).code : js;
+	return minify ? UglifyJS.minify(js).code : js;
 };
 
 const converter = new showdown.Converter();
