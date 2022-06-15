@@ -69,6 +69,39 @@ const minifyJs = (js : string, minify : boolean) : string => {
 	return minify ? UglifyJS.minify(js).code : js;
 };
 
+const eventDependency = (name : string, code : string, output : DocumentOutput) => {
+	if(output.cache.has(`dependency:${name}`)) return;
+	output.cache.add(`dependency:${name}`);
+	output.js.push(`events[${name}] = function(component, local) {
+${code}
+};`);
+};
+
+const generateDependencies = (output : DocumentOutput) => {
+	Array.from(output.dependencies).forEach(dependency => {
+		switch(dependency) {
+		case "onClick":
+			return eventDependency("onClick", `			
+	component.onclick = function() {
+		protect(function() {
+			callback(local.value, local.index/*,event*/);
+			update();
+		})
+	};`, output);
+		case "observe":
+			return eventDependency("observe", `
+	var wrapped = Component(component);
+	listeners.push({
+		component : wrapped,
+		callback : callback,
+		local : local,
+		id : component.dataset.id
+	});
+	callback(local.value, local.index, wrapped)`, output);
+		}
+	});
+};
+
 const converter = new showdown.Converter();
 
 const sharedJs = (output : DocumentOutput, minify : boolean) => minifyJs(`${javascriptBundle(output.dependencies)}
@@ -77,6 +110,7 @@ var adapters = {};
 var events = {};
 var listeners = [];
 var isMobile = /mobi/i.test(window.navigator.userAgent);
+var events = {};
 function Local(value, index) {
 	return {
 		value : value,
@@ -304,6 +338,7 @@ function bind(root, local) {
 		if(!toBind) return;
 		Object.keys(toBind).forEach(function(event) {
 			var callback = toBind[event];
+			events[event](component, local);
 			if(event === "onResize") {
 				const observer = new ResizeObserver(function(entries) {
 					const rect = component.getBoundingClientRect();
@@ -372,13 +407,6 @@ function bind(root, local) {
 						update();
 					};
 				}
-			} else if(event === "onClick") {
-				component.onclick = function() {
-					protect(function() {
-						callback(local.value, local.index/*,event*/);
-						update();
-					})
-				};
 			} else if(event === "onEnter") {
 				component.onkeypress = function(e) {					
 					if(e.which === 13) {
@@ -388,15 +416,6 @@ function bind(root, local) {
 						});
 					}
 				};
-			} else if(event === "observe") {
-				var wrapped = Component(component);
-				listeners.push({
-					component : wrapped,
-					callback : callback,
-					local : local,
-					id : component.dataset.id
-				});
-				callback(local.value, local.index, wrapped)
 			} else if(event === "onInit") {
 				callback(local.value, local.index);
 				update();
@@ -610,6 +629,7 @@ const json = <Global extends GlobalState, Local>(
 		});
 		if(output.js.length) {
 			output.js.unshift(`${library(output.dependencies)}
+${generateDependencies(output)}
 ${output.manifest ? `
 if ("serviceWorker" in navigator) {
 	window.addEventListener("load", function() {
@@ -1269,6 +1289,7 @@ window.onpopstate = function() {
 	case "onChange":
 	case "onResize":
 	case "onClick": {
+		output.dependencies.add(name);
 		const id = `${name}:${component.id}`;
 		if(!output.cache.has(id)) {
 			output.cache.add(id);
