@@ -1441,7 +1441,13 @@ var socket = (function () {
 	code: `
 var utterance = new SpeechSynthesisUtterance();
 speech.speak = function(config) {
-	utterance.lang = config.lang || "en-US";
+	function clean(input) {
+		return input.toLowerCase().replace(/[^a-z]/g, "");
+	}
+	var voice = speechSynthesis.getVoices().find(function(voice) {
+		return clean(voice.lang) === clean(config.lang || "en-US");
+	});
+	utterance.voice = voice;
 	utterance.rate = config.rate || 1;
 	utterance.text = config.text || "";
 	speechSynthesis.cancel();
