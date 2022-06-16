@@ -25,6 +25,8 @@ import { minify as minifyHtml } from "html-minifier";
 import CleanCss from "clean-css";
 import UglifyJS from "uglify-js";
 
+const TIMEOUT = 300;
+
 const getDisplay = <Global extends GlobalState, Local>(component : Component<Global, Local>) : string => {
 	switch(component.name) {	
 	case "h1": //text
@@ -175,7 +177,7 @@ var protect = (function() {
 	var last = 0;
 	return function(callback) {
 		var now = Date.now();
-		if(now - last >= 300) {
+		if(now - last >= ${TIMEOUT}) {
 			last = now;
 			callback();
 		}
@@ -228,7 +230,10 @@ function Component(component) {
 				cache[key] = value;
 				switch(key) {
 					case "translate":
-						target.style.transform = "translate(" + numberToMeasurement(value.x) + "," + numberToMeasurement(value.y) + ")";
+						windowSetTimeout(() => {
+							target.style.transform = "translate(" + numberToMeasurement(value.x) + "," + numberToMeasurement(value.y) + ")";
+						});
+						target.style.transition = "transform ${TIMEOUT}ms";
 						return;
 					case "src":
 						target.src = value;
@@ -244,10 +249,13 @@ function Component(component) {
 						windowSetTimeout(function() {
 							target.focus();
 							target.setSelectionRange(0, target.value.length);
-						}, 300);
+						}, ${TIMEOUT});
 						return;
 					case "opacity":
-						target.style.opacity = value;
+						windowSetTimeout(function() {
+							target.style.opacity = value;
+						});
+						target.style.transition = "opacity ${TIMEOUT}ms";
 						return;
 					case "enabled":
 						target.disabled = !value;
@@ -257,15 +265,10 @@ function Component(component) {
 						return;
 					case "animation":
 						if(!value) return;
-						target.style.willChange = "opacity, transform";
 						function render() {
-							const progress = Math.max(Math.min((Date.now() - value.start) / 300, 1), 0)
+							var progress = Math.max(Math.min((Date.now() - value.start) / ${TIMEOUT}, 1), 0)
 							if(progress < 1) {
 								requestAnimationFrame(render);
-							} else {
-								windowSetTimeout(function() {
-									target.style.willChange = "auto";
-								})
 							}
 							if(value.direction === "in" && value.name === "right") {
 								target.style.transform = "translateX(" + (100 - 100 * progress) + "%)";
@@ -431,9 +434,6 @@ html, body {
 * { 
 	box-sizing: border-box;
 }
-.loaded * {
-	transition: opacity 300ms, width 300ms, height 300ms, transform 300ms;
-}
 button {
 	cursor : pointer;
 }
@@ -485,7 +485,7 @@ export const html = <Global extends GlobalState, Local>(
 			}).join("\n"), minify),
 			...(result.js.length ? {
 				"shared.js" : sharedJs(result, minify),
-				[`${name}.js`] : minifyJs(result.js.join("\n") + "document.body.className = 'loaded';bind(document.body, Local(global, 0));", minify),
+				[`${name}.js`] : minifyJs(result.js.join("\n") + "bind(document.body, Local(global, 0));", minify),
 			} : {})
 		};
 		if(result.manifest) {
