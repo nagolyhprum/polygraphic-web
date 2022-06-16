@@ -1440,6 +1440,7 @@ var socket = (function () {
 	dependency: "speech.speak",
 	code: `
 var utterance = new SpeechSynthesisUtterance();
+speechSynthesis.getVoices(); // start loading
 speech.speak = function(config) {
 	function clean(input) {
 		return input.toLowerCase().replace(/[^a-z]/g, "");
@@ -1454,12 +1455,25 @@ speech.speak = function(config) {
 		utterance.text = config.text || "";
 		speechSynthesis.cancel();
 		speechSynthesis.speak(utterance);
-	} else {
-		setTimeout(function() {
-			speech.speak(config);
-		}, 100);
 	}
 };`
+}, {
+	dependency : "audio",
+	code : `
+var audio = {};`
+}, {
+	dependency : "audio.play",
+	code : `
+audio.play = (function() {
+	var audio = new Audio();
+	return function(config) {
+		audio.pause();
+		audio.currentTime = 0;
+		audio.src = config.src;
+		audio.play();
+	};	
+})();
+`
 }, {
 	dependency : "speech.listen",
 	code : `
