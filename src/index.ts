@@ -202,7 +202,7 @@ function numberToMeasurement(input) {
 	if(input === null || input === undefined) {
 		return "";
 	}
-	if(0 < input && input < 1) {
+	if(-1 < input && input < 1) {
 		return (input * 100) + "%";
 	} else if(input === ${WRAP}) {
 		return "auto";
@@ -688,7 +688,7 @@ const numberToMeasurement = (input : number | null | undefined) : string => {
 	if(input === null || input === undefined) {
 		return "";
 	}
-	if(0 < input && input < 1) {
+	if(-1 < input && input < 1) {
 		return `${input * 100}%`;
 	} else if(input === WRAP) {
 		return "auto";
