@@ -199,8 +199,8 @@ function $(html) {
 	};
 }
 function numberToMeasurement(input) {
-	if(input === null || input === undefined) {
-		return "";
+	if(!input) {
+		return "0";
 	}
 	if(-1 < input && input < 1) {
 		return (input * 100) + "%";
@@ -685,8 +685,8 @@ const getTagName = (name : Tag) : {
 
 
 const numberToMeasurement = (input : number | null | undefined) : string => {
-	if(input === null || input === undefined) {
-		return "";
+	if(!input) {
+		return "0";
 	}
 	if(-1 < input && input < 1) {
 		return `${input * 100}%`;
