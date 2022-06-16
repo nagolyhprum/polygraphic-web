@@ -202,6 +202,9 @@ function numberToMeasurement(input) {
 	if(!input) {
 		return "0";
 	}
+	if(typeof input === "string") {
+		return input;
+	}
 	if(-1 < input && input < 1) {
 		return (input * 100) + "%";
 	} else if(input === ${WRAP}) {
@@ -684,9 +687,12 @@ const getTagName = (name : Tag) : {
 };
 
 
-const numberToMeasurement = (input : number | null | undefined) : string => {
+const numberToMeasurement = (input : string | number | null | undefined) : string => {	
 	if(!input) {
 		return "0";
+	}
+	if(typeof input === "string") {
+		return input;
 	}
 	if(-1 < input && input < 1) {
 		return `${input * 100}%`;
