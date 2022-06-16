@@ -353,7 +353,7 @@ function Component(component) {
 						target.style.background = value;
 						return;
 					case "visible":
-						target.style.display = value ? (target.style.flexDirection ? "flex" : "block") : "none";
+						target.style.display = value ? "" : "none";
 						return;
 					case "markdown":
 						target.innerHTML = converter.makeHtml(value);
