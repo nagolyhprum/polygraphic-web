@@ -144,12 +144,20 @@ const observer = new ResizeObserver(function(entries) {
 observer.observe(component);`, output);
 		case "onClick":
 			return eventDependency("onClick", `			
-	component.onclick = function() {
-		protect(function() {
-			callback(local.value, local.index/*,event*/);
-			update();
-		})
-	};`, output);
+component.onclick = function() {
+	protect(function() {
+		callback(local.value, local.index/*,event*/);
+		update();
+	})
+};`, output);
+		case "onContext":
+			return eventDependency("onContext", `			
+component.oncontextmenu = function() {
+	protect(function() {
+		callback(local.value, local.index/*,event*/);
+		update();
+	})
+};`, output);
 		case "observe":
 			return eventDependency("observe", `
 	var wrapped = Component(component);
@@ -243,7 +251,10 @@ function Component(component) {
 						return;
 					case "width":
 					case "height":
-						target.style[key] = numberToMeasurement(value);
+						windowSetTimeout(function() {
+							target.style[key] = numberToMeasurement(value);
+						});
+						target.style.transition = key + " ${TIMEOUT}ms";
 						return;
 					case "focus":
 						windowSetTimeout(function() {
@@ -1120,6 +1131,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	case "onResize":
 	case "onDrop":
 	case "onInit":
+	case "onContext":
 	case "onClick":
 	case "onEnter":
 	case "onInput":
@@ -1256,6 +1268,7 @@ window.onpopstate = function() {
 	case "onSelect":
 	case "onChange":
 	case "onResize":
+	case "onContext":
 	case "onClick": {
 		output.dependencies.add(name);
 		const id = `${name}:${component.id}`;
