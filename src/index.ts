@@ -152,11 +152,15 @@ component.onclick = function() {
 };`, output);
 		case "onContext":
 			return eventDependency("onContext", `			
-component.oncontextmenu = function() {
+component.oncontextmenu = function(e) {
 	protect(function() {
 		callback(local.value, local.index/*,event*/);
 		update();
 	})
+	e.stopPropagation();
+	e.preventDefault();
+	e.cancelBubble = true;
+	return false;
 };`, output);
 		case "observe":
 			return eventDependency("observe", `
