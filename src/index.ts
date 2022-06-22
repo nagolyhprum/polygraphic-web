@@ -155,21 +155,18 @@ function getFiles(event) {
 		return Array.from(event.dataTransfer.files);
 	}
 }
-
-component.ondrop = function() {
-	function prevent(e) {
-		e.preventDefault();
-		e.stopPropagation();
-		e.cancelBubble = true;
-		return false;
-	};
-	component.ondragenter = prevent
-	component.ondragleave = prevent
-	component.ondragover = prevent
-	component.ondrop = function(event) {
-		callback(local.value, local.index, getFiles(event));
-		update();
-	};
+function prevent(e) {
+	e.preventDefault();
+	e.stopPropagation();
+	e.cancelBubble = true;
+	return false;
+};
+component.ondragenter = prevent
+component.ondragleave = prevent
+component.ondragover = prevent
+component.ondrop = function(event) {
+	callback(local.value, local.index, getFiles(event));
+	update();
 };`, output);
 		case "onClick":
 			return eventDependency("onClick", `			
