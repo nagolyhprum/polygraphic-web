@@ -142,6 +142,35 @@ const observer = new ResizeObserver(function(entries) {
 	update();
 });
 observer.observe(component);`, output);
+		case "onDrop":
+			return eventDependency("onDrop", `
+function getFiles(event) {
+	if (event.dataTransfer.items) {
+		return Array.from(event.dataTransfer.items).filter(function(item) {
+			return item.kind === 'file';
+		}).map(function(item) {
+			return item.getAsFile();
+		})
+	} else {
+		return Array.from(event.dataTransfer.files);
+	}
+}
+
+component.ondrop = function() {
+	function prevent(e) {
+		e.preventDefault();
+		e.stopPropagation();
+		e.cancelBubble = true;
+		return false;
+	};
+	component.ondragenter = prevent
+	component.ondragleave = prevent
+	component.ondragover = prevent
+	component.ondrop = function(event) {
+		callback(local.value, local.index, getFiles(event));
+		update();
+	};
+};`, output);
 		case "onClick":
 			return eventDependency("onClick", `			
 component.onclick = function() {
@@ -409,21 +438,7 @@ function bind(root, local) {
 		Object.keys(toBind).forEach(function(event) {
 			var callback = toBind[event];
 			events[event](component, local, callback);
-			if(event === "onDrop") {
-				function prevent(e) {
-					e.preventDefault();
-					e.stopPropagation();
-					e.cancelBubble = true;
-					return false;
-				};
-				component.ondragenter = prevent
-				component.ondragleave = prevent
-				component.ondragover = prevent
-				component.ondrop = function() {
-					callback(local.value, local.index);
-					update();
-				};
-			} else if(event === "onDragStart") {
+			if(event === "onDragStart") {
 				component.ondragstart = function() {
 					callback(local.value, local.index);
 					update();
