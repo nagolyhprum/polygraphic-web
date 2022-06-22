@@ -167,6 +167,7 @@ component.ondragover = prevent
 component.ondrop = function(event) {
 	callback(local.value, local.index, getFiles(event));
 	update();
+	return prevent();
 };`, output);
 		case "onClick":
 			return eventDependency("onClick", `			
