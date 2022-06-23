@@ -596,7 +596,7 @@ const json = <Global extends GlobalState, Local>(
 		});
 		const output : DocumentOutput = {
 			name,
-			dependencies : new Set<string>([]),
+			dependencies,
 			js : [],
 			head : {
 				title : "",
@@ -1442,13 +1442,13 @@ const handle = <Global extends GlobalState, Local>({
 };
 
 const library = (dependencies : Set<string>) => [{
-	dependencies : "debounce",
+	dependency : "debounce",
 	code : `
 var debounce = (function() {
 	var timeouts = {};
 	return function(name, callback, ms) {
 		clearTimeout(timeouts[name]);
-		timeouts[name] = setTimeout(function() {
+		timeouts[name] = windowSetTimeout(function() {
 			delete timeouts[name];
 			callback();
 			update();
@@ -1456,13 +1456,13 @@ var debounce = (function() {
 	};
 })();`
 }, {
-	dependencies : "throttle",
+	dependency : "throttle",
 	code : `
 var throttle = (function() {
 	var timeouts = {};
 	return function(name, callback, ms) {
 		if(!timeouts[name]) {
-			timeouts[name] = setTimeout(function() {
+			timeouts[name] = windowSetTimeout(function() {
 				delete timeouts[name];
 				callback();
 				update();
