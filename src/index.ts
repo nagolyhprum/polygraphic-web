@@ -1442,6 +1442,35 @@ const handle = <Global extends GlobalState, Local>({
 };
 
 const library = (dependencies : Set<string>) => [{
+	dependencies : "debounce",
+	code : `
+var debounce = (function() {
+	var timeouts = {};
+	return function(name, callback, ms) {
+		clearTimeout(timeouts[name]);
+		timeouts[name] = setTimeout(function() {
+			delete timeouts[name];
+			callback();
+			update();
+		}, ms);
+	};
+})();`
+}, {
+	dependencies : "throttle",
+	code : `
+var throttle = (function() {
+	var timeouts = {};
+	return function(name, callback, ms) {
+		if(!timeouts[name]) {
+			timeouts[name] = setTimeout(function() {
+				delete timeouts[name];
+				callback();
+				update();
+			}, ms);
+		}
+	};
+})();`
+}, {
 	dependency : "setTimeout",
 	code: `
 var setTimeout = (function() {
