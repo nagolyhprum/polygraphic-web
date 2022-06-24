@@ -281,6 +281,15 @@ function Component(component) {
 			if(!(key in cache) || cache[key] !== value) {
 				cache[key] = value;
 				switch(key) {
+					case "border":
+						target.style.border = "none";
+						Object.keys(value || {}).forEach(function(side) {
+							target.style["border" + side[0].toUpperCase() + side.slice(1)] = value[side].join(" ");
+						});
+						return;
+					case "editable":
+						target.contentEditable = value;
+						return;
 					case "translate":
 						windowSetTimeout(() => {
 							target.style.transform = "translate(" + numberToMeasurement(value.x) + "," + numberToMeasurement(value.y) + ")";
@@ -422,7 +431,7 @@ function Component(component) {
 						target.style.background = value;
 						return;
 					case "visible":
-						target.style.display = value ? "" : "none";
+						target.style.display = value ? target.dataset.display : "none";
 						return;
 					case "markdown":
 						target.innerHTML = converter.makeHtml(value);
@@ -928,6 +937,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	case "border":
 		return handleBox(`${name}-`, value as BoxProp<number | Array<unknown>>, props, output);
 	case "visible":
+		props["data-display"] = getDisplay(component);
 		addClass(
 			"display",
 			value ? getDisplay(component) : "none",
@@ -1163,6 +1173,9 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			output,
 			props
 		);
+	case "editable":
+		props.contenteditable = `${value}`;
+		return props;
 	case "manifest":
 	case "markdown":
 	case "onDragEnd":
@@ -1379,6 +1392,7 @@ ${generated}});`);
 	case "weight":	
 	case "translate":
 	case "index":
+	case "editable":
 		return;
 	}
 	failed(name);
