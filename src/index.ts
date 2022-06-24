@@ -113,7 +113,7 @@ if(component.tagName.toLowerCase() === "select") {
 	};
 } else {
 	component.oninput = function() {					
-		callback(local.value, local.index, this.value || this.innerHTML);
+		callback(local.value, local.index, this.value || this.innerText);
 		update();
 	};
 }`, output);
@@ -366,21 +366,25 @@ function Component(component) {
 						render();
 						return;
 					case "value":
-						if(target.type === "date") {
-							if(value === -1) {
-								target.valueAsDate = null;
+						if(target !== document.activeElement) {
+							if(target.type === "date") {
+								if(value === -1) {
+									target.valueAsDate = null;
+								} else {
+									var local = new Date(value);
+									target.valueAsDate = new Date(Date.UTC(local.getFullYear(), local.getMonth(), local.getDate()));
+								}
+							} else if(target.type === "checkbox") {
+								target.checked = value;
 							} else {
-								var local = new Date(value);
-								target.valueAsDate = new Date(Date.UTC(local.getFullYear(), local.getMonth(), local.getDate()));
+								target.value = value;
 							}
-						} else if(target.type === "checkbox") {
-							target.checked = value;
-						} else {
-							target.value = value;
 						}
 						return;
 					case "text":
-						target.innerText = value;
+						if(target !== document.activeElement) {
+							target.innerText = value;
+						}
 						return;
 					case "data":
 						if(!cache.prevData) {
@@ -766,6 +770,17 @@ const numberToMeasurement = (input : string | number | null | undefined) : strin
 };
 
 const addClass = (name : string, value : string, output : DocumentOutput, props : TagProps) : TagProps => {
+	{ // remove conflicts
+		const query = output.css.cache[output.css.query] = output.css.cache[output.css.query] || {};
+		const style = query[name] = query[name] || {};
+		// remove conflicts
+		Object.keys(style).forEach(value => {
+			const toRemove = style[value];
+			if(toRemove && props.className.has(toRemove)) {
+				props.className.delete(toRemove);
+			}
+		});
+	}
 	const cache = output.css.cache[output.css.query]?.[name]?.[value];
 	if(cache) {
 		props.className.add(cache);
@@ -790,13 +805,6 @@ const addClass = (name : string, value : string, output : DocumentOutput, props 
 			const query = output.css.cache[output.css.query] = output.css.cache[output.css.query] || {};
 			const style = query[name] = query[name] || {};
 			style[value] = letter;
-			// remove conflicts
-			Object.keys(style).forEach(value => {
-				const toRemove = style[value];
-				if(toRemove) {
-					props.className.delete(toRemove);
-				}
-			});
 		}
 		{ // set up the output
 			const query = output.css.queries[output.css.query] = output.css.queries[output.css.query] || {};
