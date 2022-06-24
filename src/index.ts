@@ -258,6 +258,19 @@ function numberToMeasurement(input) {
 }
 function Component(component) {
 	var cache = {};
+	var images = {};
+	var getImage = function(src) {
+		var promise = images[src];
+		if(!promise) {
+			promise = windowFetch(src).then(function(res) {
+				return res.blob();
+			}).then(function(buffer) {
+				return URL.createObjectURL(buffer);
+			});
+		}
+		images[src] = promise;
+		return promise;
+	}
 	return new Proxy(component, {
 		get : function(target, key) {
 			if(key === "isMounted") {
@@ -275,7 +288,15 @@ function Component(component) {
 						target.style.transition = "transform ${TIMEOUT}ms";
 						return;
 					case "src":
-						target.src = value;
+						if(src) {
+							getImage(value).then(function(src) {
+								target.src = src;
+							}).catch(function() {
+								document.body.removeAttribute("src");
+							});
+						} else {
+							document.body.removeAttribute("src");
+						}
 						return;
 					case "clickable":
 						target.style.pointerEvents = value ? "auto" : "none";
@@ -1264,7 +1285,7 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 			output.js.push("}");
 			output.js.push(`history.pushState(null, document.title, location.href);
 window.onpopstate = function() {
-	const shouldQuit = global.routes.length === 1;
+	var shouldQuit = global.routes.length === 1;
 	if(!onBack() && shouldQuit) {
 		history.back();
 	} else {
@@ -1530,12 +1551,17 @@ var audio = {};`
 	dependency : "audio.play",
 	code : `
 audio.play = (function() {
-	var audio = new Audio();
+	var cache = {}, playing;
 	return function(config) {
-		audio.pause();
-		audio.currentTime = 0;
-		audio.src = config.src;
-		audio.play();
+		playing && playing.pause();
+		playing = cache[config.src];
+		if(!playing) {
+			playing = new Audio();
+			playing.src = config.src;
+		}
+		cache[config.src] = playing;
+		playing.currentTime = 0;
+		playing.play();
 	};	
 })();
 `
