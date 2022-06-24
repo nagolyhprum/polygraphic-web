@@ -790,6 +790,13 @@ const addClass = (name : string, value : string, output : DocumentOutput, props 
 			const query = output.css.cache[output.css.query] = output.css.cache[output.css.query] || {};
 			const style = query[name] = query[name] || {};
 			style[value] = letter;
+			// remove conflicts
+			Object.keys(style).forEach(value => {
+				const toRemove = style[value];
+				if(toRemove) {
+					props.className.delete(toRemove);
+				}
+			});
 		}
 		{ // set up the output
 			const query = output.css.queries[output.css.query] = output.css.queries[output.css.query] || {};
