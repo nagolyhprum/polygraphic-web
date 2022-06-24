@@ -113,7 +113,7 @@ if(component.tagName.toLowerCase() === "select") {
 	};
 } else {
 	component.oninput = function() {					
-		callback(local.value, local.index, this.value);
+		callback(local.value, local.index, this.value || this.innerHTML);
 		update();
 	};
 }`, output);
@@ -284,7 +284,9 @@ function Component(component) {
 					case "border":
 						target.style.border = "none";
 						Object.keys(value || {}).forEach(function(side) {
-							target.style["border" + side[0].toUpperCase() + side.slice(1)] = value[side].join(" ");
+							var key = "border" + side[0].toUpperCase() + side.slice(1);
+							var val = [numberToMeasurement(value[side][0]), value[side][1], value[side][2]].join(" ");
+							target.style[key] = val;
 						});
 						return;
 					case "editable":
