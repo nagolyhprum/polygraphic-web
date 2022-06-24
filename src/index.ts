@@ -86,7 +86,7 @@ const generateDependencies = (output : DocumentOutput) => {
 			return eventDependency("onChange", `
 if(component.tagName.toLowerCase() === "select") {
 	component.onchange = function() {					
-		const value = this.value;
+		var value = this.value;
 		protect(function() {
 			callback(local.value, local.index, value);
 			update();
@@ -94,7 +94,7 @@ if(component.tagName.toLowerCase() === "select") {
 	};
 } else if(component.type === "checkbox") {
 	component.onclick = function() {					
-		const checked = this.checked;
+		var checked = this.checked;
 		protect(function() {
 			callback(local.value, local.index, checked);
 			update();
@@ -133,8 +133,8 @@ callback(local.value, local.index);
 update();`, output);
 		case "onResize":
 			return eventDependency("onResize", `
-const observer = new ResizeObserver(function(entries) {
-	const rect = component.getBoundingClientRect();
+var observer = new ResizeObserver(function(entries) {
+	var rect = component.getBoundingClientRect();
 	callback(local.value, local.index, {
 		width: rect.width,
 		height: rect.height,
@@ -288,7 +288,7 @@ function Component(component) {
 						target.style.transition = "transform ${TIMEOUT}ms";
 						return;
 					case "src":
-						if(src) {
+						if(value) {
 							getImage(value).then(function(src) {
 								target.src = src;
 							}).catch(function() {
