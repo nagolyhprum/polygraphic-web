@@ -712,7 +712,9 @@ const getTagName = (name : Tag) : {
 			name,
 			selfClosing : false
 		};
+	case "fixed":
 	case "text":
+	case "stack":
 		return {
 			name : "span",
 			selfClosing : false
@@ -722,11 +724,9 @@ const getTagName = (name : Tag) : {
 			name : "a",
 			selfClosing : false
 		};
-	case "fixed":
 	case "grid":
 	case "flex":
 	case "progress":
-	case "stack":
 	case "scrollable":
 	case "row":
 	case "root":
