@@ -494,6 +494,7 @@ html, body {
 	width : 100%;
 	min-height : 100%;
 	font-size : 16px;
+	font-family: 'Roboto', sans-serif;
 }
 * { 
 	box-sizing: border-box;
@@ -502,13 +503,11 @@ button {
 	cursor : pointer;
 }
 select, input, button, html, body, nav, footer, header, main, section, h1, h2, h3, p, span, a {
-	font-family: 'Roboto', sans-serif;
 	text-align : start;
 	background : transparent;
 	margin : 0;
 	padding : 0;
 	border : 0;
-	font-size : 16px;
 	text-decoration : none;
 }
 .progress {
