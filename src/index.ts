@@ -1190,7 +1190,9 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			props
 		);
 	case "editable":
-		props.contenteditable = `${value}`;
+		if(value) {
+			props.contenteditable = `${value}`;
+		}
 		return props;
 	case "manifest":
 	case "markdown":
