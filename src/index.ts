@@ -289,12 +289,12 @@ function Component(component) {
 						return;
 					case "metas":
 						Object.keys(value).forEach(function(key) {
-							document.querySelector("meta[name=" + key + "]").content = value;
+							document.querySelector("meta[name=" + key + "]").content = value[key];
 						});
 						return;
 					case "links":
 						Object.keys(value).forEach(function(key) {
-							document.querySelector("link[rel=" + key + "]").href = value;
+							document.querySelector("link[rel=" + key + "]").href = value[key];
 						});
 						return;
 					case "border":
