@@ -87,6 +87,9 @@ const generateDependencies = (output : DocumentOutput) => {
 if(component.tagName.toLowerCase() === "select") {
 	component.onchange = function() {					
 		var value = this.value;
+		if(this.type === "number") {
+			value = this.valueAsNumber;
+		}
 		protect(function() {
 			callback(local.value, local.index, value);
 			update();
@@ -281,6 +284,19 @@ function Component(component) {
 			if(!(key in cache) || cache[key] !== value) {
 				cache[key] = value;
 				switch(key) {
+					case "title":
+						document.querySelector("title").innerText = value;
+						return;
+					case "metas":
+						Object.keys(value).forEach(function(key) {
+							document.querySelector("meta[name=" + key + "]").content = value;
+						});
+						return;
+					case "links":
+						Object.keys(value).forEach(function(key) {
+							document.querySelector("link[rel=" + key + "]").href = value;
+						});
+						return;
 					case "border":
 						target.style.border = "none";
 						Object.keys(value || {}).forEach(function(side) {
@@ -367,6 +383,9 @@ function Component(component) {
 						return;
 					case "value":
 						if(target !== document.activeElement) {
+							if(value === undefined || value === null) {
+								value = "";
+							}
 							if(target.type === "date") {
 								if(value === -1) {
 									target.valueAsDate = null;
@@ -383,6 +402,9 @@ function Component(component) {
 						return;
 					case "text":
 						if(target !== document.activeElement) {
+							if(value === undefined || value === null) {
+								value = "";
+							}
 							target.innerText = value;
 						}
 						return;
@@ -736,6 +758,7 @@ const getTagName = (name : Tag) : {
 		};
 	case "date":
 	case "checkbox":
+	case "number":
 	case "input":
 		return {
 			name : "input",
@@ -915,8 +938,8 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 				props
 			);
 		}
-		if(value === "checkbox") {
-			props.type = "checkbox";
+		if(value === "checkbox" || value === "number") {
+			props.type = value as string;
 		}
 		return props;
 	case "background":
