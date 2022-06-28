@@ -30,6 +30,7 @@ export type DocumentOutput = {
         }
     }
     scripts : string[]
+    stylesheets : string[]
     cache : Set<string>
     dependencies : Set<string>
     manifest?: Manifest

@@ -24,6 +24,7 @@ import showdown from "showdown";
 import { minify as minifyHtml } from "html-minifier";
 import CleanCss from "clean-css";
 import UglifyJS from "uglify-js";
+import {escape as escapeHtml} from "html-escaper";
 
 const TIMEOUT = 300;
 
@@ -42,6 +43,7 @@ const getDisplay = <Global extends GlobalState, Local>(component : Component<Glo
 	case "progress": // does not matter
 	case "scrollable":
 	case "stack":
+	case "editor":
 		return "block";
 	case "button":
 	case "column":
@@ -85,7 +87,16 @@ const generateDependencies = (output : DocumentOutput) => {
 		switch(dependency) {
 		case "onChange":
 			return eventDependency("onChange", `
-if(component.tagName.toLowerCase() === "select") {
+if(component.dataset.editor) {
+	var editor = new Quill(component, {
+		modules: { toolbar: true },
+		theme: 'snow'
+	});
+	editor.on("text-change", function() {
+		callback(local.value, local.index, editor.root.innerHTML);
+		update();
+	});
+} else if(component.tagName.toLowerCase() === "select") {
 	component.onchange = function() {					
 		var value = this.value;
 		if(this.type === "number") {
@@ -387,7 +398,12 @@ function Component(component) {
 							if(value === undefined || value === null) {
 								value = "";
 							}
-							if(target.type === "date") {
+							if(target.dataset.editor) {								
+								var editor = target.querySelector(".ql-editor");
+								if(editor !== document.activeElement) {
+									editor.innerHTML = value;
+								}
+							} else if(target.type === "date") {
 								if(value === -1) {
 									target.valueAsDate = null;
 								} else {
@@ -399,6 +415,14 @@ function Component(component) {
 							} else {
 								target.value = value;
 							}
+						}
+						return;
+					case "html":
+						if(target !== document.activeElement) {
+							if(value === undefined || value === null) {
+								value = "";
+							}
+							target.innerHTML = value;
 						}
 						return;
 					case "text":
@@ -616,6 +640,9 @@ self.addEventListener("fetch", function(event) {
 	};
 
 const scripts = [{
+	dependency : "quill",
+	src : "https://cdn.quilljs.com/1.0.0/quill.js",
+}, {
 	dependency : "moment",
 	src : "https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js",
 }, {
@@ -624,6 +651,11 @@ const scripts = [{
 }, {
 	dependency : "socket",
 	src : "https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"
+}];
+
+const stylesheets = [{
+	dependency : "quill",
+	href : "https://cdn.quilljs.com/1.0.0/quill.snow.css",
 }];
 
 const json = <Global extends GlobalState, Local>(
@@ -667,6 +699,7 @@ const json = <Global extends GlobalState, Local>(
 			},
 			html : [],
 			scripts : [],
+			stylesheets : [],
 			cache : new Set<string>([]),
 		};
 		handle({
@@ -702,6 +735,11 @@ ${output.manifest ? `onUpdate.push(function() {
 		scripts.forEach(script => {
 			if(output.dependencies.has(script.dependency)) {
 				output.scripts.push(script.src);
+			}
+		});
+		stylesheets.forEach(stylesheet => {
+			if(output.dependencies.has(stylesheet.dependency)) {
+				output.stylesheets.push(stylesheet.href);
 			}
 		});
 		return output;
@@ -751,6 +789,7 @@ const getTagName = (name : Tag) : {
 	case "row":
 	case "root":
 	case "column":
+	case "editor":
 		return {
 			name : "div",
 			selfClosing : false
@@ -896,6 +935,11 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			output,
 			props
 		);
+		if(value === "editor") {
+			output.dependencies.add("quill");
+			props["data-editor"] = "true";
+			output.scripts.push();
+		}
 		if(value === "fixed") {
 			addClass(
 				"position",
@@ -1232,6 +1276,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	case "onChange":
 	case "children":
 	case "text":
+	case "html":
 	case "adapters":
 	case "data":
 	case "focus":
@@ -1260,8 +1305,11 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
     local : Local
 }) => {
 	switch(name) {
-	case "text":
+	case "html":
 		output.html.push(value as string);
+		return;
+	case "text":
+		output.html.push(escapeHtml(value as string || ""));
 		return;
 	case "children":
 		(value as Component<Global, Local>[]).forEach(component => handle({
@@ -1653,6 +1701,7 @@ speech.listen = function(config) {
 const document = ({
 	name,
 	scripts,
+	stylesheets,
 	html,
 	js,
 	manifest,
@@ -1676,6 +1725,7 @@ const document = ({
 }${
 	Object.keys(links).map(key => `<link rel="${key}" href="${links[key]}" />`).join("")
 }`}
+		${stylesheets.map(href => `<link href="${href}" rel="stylesheet"/>`).join("")}
 		<link href="/shared.css" rel="stylesheet" />
 		<link href="/${name}.css" rel="stylesheet" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
