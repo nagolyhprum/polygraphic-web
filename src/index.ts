@@ -35,6 +35,7 @@ const getDisplay = <Global extends GlobalState, Local>(component : Component<Glo
 	case "p":
 	case "checkbox":  //input
 	case "date":
+	case "number":
 	case "input":
 	case "option":
 	case "select":
@@ -1457,7 +1458,7 @@ const handle = <Global extends GlobalState, Local>({
 		selfClosing
 	} = getTagName(component.name);
 
-	if(component.observe && local) {
+	if(component.observe) {
 		component.observe.forEach(callback => {
 			const generated = compile(callback as (config : any) => ProgrammingLanguage, output.dependencies);
 			execute(generated, {
@@ -1481,7 +1482,7 @@ const handle = <Global extends GlobalState, Local>({
 	}, <TagProps>{
 		className: new Set<string>([])
 	});
-
+	
 	const render = Object.keys(props).map(key => {
 		const value = props[key] as unknown;
 		if(key !== "children" && value) {
