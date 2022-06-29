@@ -433,6 +433,9 @@ function Component(component) {
 							target.innerHTML = value;
 						}
 						return;
+					case "href":
+						target.href = value;
+						return;
 					case "text":
 						if(target !== document.activeElement) {
 							if(value === undefined || value === null) {
