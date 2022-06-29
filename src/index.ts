@@ -548,9 +548,10 @@ html, body {
 }
 button {
 	cursor : pointer;
+	background : transparent;
+	text-align : start;
 }
 select, input, button, html, body, nav, footer, header, main, section, h1, h2, h3, p, span, a {
-	background : transparent;
 	margin : 0;
 	padding : 0;
 	border : 0;
