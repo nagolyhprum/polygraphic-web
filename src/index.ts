@@ -320,6 +320,12 @@ function Component(component) {
 					case "editable":
 						target.contentEditable = value;
 						return;
+					case "rotate":
+						windowSetTimeout(() => {
+							target.style.transform = "rotate(" + value + "deg)";
+						});
+						target.style.transition = "transform ${TIMEOUT}ms";
+						return;
 					case "translate":
 						windowSetTimeout(() => {
 							target.style.transform = "translate(" + numberToMeasurement(value.x) + "," + numberToMeasurement(value.y) + ")";
@@ -1238,6 +1244,14 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			output,
 			props
 		);
+	case "rotate": {
+		return addClass(
+			"transform",
+			`rotate(${value}deg)`,
+			output,
+			props
+		);
+	}
 	case "translate": {
 		const translate = value as Component<Global, Local>["translate"];
 		if(translate) {
@@ -1481,6 +1495,7 @@ ${generated}});`);
 	case "direction":
 	case "weight":	
 	case "translate":
+	case "rotate":
 	case "index":
 	case "editable":
 		return;
