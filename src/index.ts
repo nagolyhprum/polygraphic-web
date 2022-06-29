@@ -334,11 +334,13 @@ function Component(component) {
 						return;
 					case "src":
 						if(value) {
-							getImage(value).then(function(src) {
-								target.src = src;
-							}).catch(function() {
-								document.body.removeAttribute("src");
-							});
+							if(new URL(value).pathname !== new URL(target.src).pathname) {
+								getImage(value).then(function(src) {
+									target.src = src;
+								}).catch(function() {
+									document.body.removeAttribute("src");
+								});
+							}
 						} else {
 							document.body.removeAttribute("src");
 						}
