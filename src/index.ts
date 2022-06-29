@@ -550,6 +550,7 @@ button {
 	cursor : pointer;
 }
 select, input, button, html, body, nav, footer, header, main, section, h1, h2, h3, p, span, a {
+	background : transparent;
 	margin : 0;
 	padding : 0;
 	border : 0;
@@ -1107,7 +1108,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			);
 			addClass(
 				"box-shadow",
-				"rgba(0, 0, 0, 0.15) 1.95px 1.95px 2.6px",
+				"#00000088 2px 2px 8px",
 				output,
 				props
 			);
