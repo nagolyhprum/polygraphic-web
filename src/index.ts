@@ -334,7 +334,7 @@ function Component(component) {
 						return;
 					case "src":
 						if(value) {
-							if(new URL(value).pathname !== new URL(target.src).pathname) {
+							if(new URL(value, location).pathname !== new URL(target.src, location).pathname) {
 								getImage(value).then(function(src) {
 									target.src = src;
 								}).catch(function() {
