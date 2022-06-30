@@ -25,10 +25,11 @@
   "homepage": "https://github.com/nagolyhprum/polygraphic-web#readme",
   "dependencies": {
     "clean-css": "^5.3.0",
+    "handlebars": "^4.7.7",
     "html-escaper": "^3.0.3",
     "html-minifier": "^4.0.0",
     "moment": "^2.29.1",
-    "polygraphic": "^0.130.0",
+    "polygraphic": "^0.131.2",
     "showdown": "^2.0.3",
     "uglify-js": "^3.16.0"
   },

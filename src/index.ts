@@ -20,11 +20,17 @@ import {
 import { DocumentOutput, Manifest, TagProps } from "./types";
 export * from "./types";
 import moment from "moment";
+import { compile as compileHB } from "handlebars";
 import showdown from "showdown";
 import { minify as minifyHtml } from "html-minifier";
 import CleanCss from "clean-css";
 import UglifyJS from "uglify-js";
 import {escape as escapeHtml} from "html-escaper";
+
+const handlebars = (input : string, data : unknown) => {
+	const template = compileHB(input);
+	return template(data);
+};
 
 const TIMEOUT = 300;
 
@@ -85,6 +91,10 @@ ${code}
 const generateDependencies = (output : DocumentOutput) => {
 	return Array.from(output.dependencies).map(dependency => {
 		switch(dependency) {
+		case "handlebars":
+			return `var handlebars = function(input, data) {
+	return handlebars.compile(input)(data);
+}`;
 		case "onChange":
 			return eventDependency("onChange", `
 if(component.dataset.editor) {
@@ -653,6 +663,9 @@ self.addEventListener("fetch", function(event) {
 	};
 
 const scripts = [{
+	dependency : "handlebars",
+	src : "https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.7/handlebars.min.js",
+}, {
 	dependency : "quill",
 	src : "https://cdn.quilljs.com/1.0.0/quill.js",
 }, {
@@ -682,7 +695,8 @@ const json = <Global extends GlobalState, Local>(
 		const generated = compile(generateState as unknown as (config : any) => ProgrammingLanguage, dependencies);
 		const state = execute(generated, {
 			...stubs,
-			moment
+			moment,
+			handlebars
 		}) as Global & Local;
 		state.ui = {};
 		state.features = ["speech.listen"];
@@ -1534,7 +1548,8 @@ const handle = <Global extends GlobalState, Local>({
 				local,
 				event : component,
 				...stubs,
-				moment
+				moment,
+				handlebars
 			});
 		});
 	}
