@@ -93,9 +93,8 @@ const generateDependencies = (output : DocumentOutput) => {
 	return Array.from(output.dependencies).map(dependency => {
 		switch(dependency) {
 		case "handlebars":
-			return `var globalHandlebars = handlebars;
-var handlebars = function(input, data) {
-	return globalHandlebars.compile(input)(data);
+			return `var handlebars = function(input, data) {
+	return Handlebars.compile(input)(data);
 }`;
 		case "onChange":
 			return eventDependency("onChange", `
