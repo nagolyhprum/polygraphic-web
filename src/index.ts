@@ -50,6 +50,7 @@ const getDisplay = <Global extends GlobalState, Local>(component : Component<Glo
 	case "scrollable":
 	case "stack":
 	case "editor":
+	case "content":
 		return "block";
 	case "button":
 	case "column":
@@ -92,16 +93,30 @@ const generateDependencies = (output : DocumentOutput) => {
 	return Array.from(output.dependencies).map(dependency => {
 		switch(dependency) {
 		case "handlebars":
-			return `var handlebars = function(input, data) {
-	return handlebars.compile(input)(data);
+			return `var globalHandlebars = handlebars;
+var handlebars = function(input, data) {
+	return globalHandlebars.compile(input)(data);
 }`;
 		case "onChange":
 			return eventDependency("onChange", `
 if(component.dataset.editor) {
 	var editor = new Quill(component, {
-		modules: { toolbar: true },
+		modules: {
+			toolbar: true
+		},
 		theme: 'snow'
 	});
+	// LINK 
+	var Link = Quill.import("formats/link");				
+	class LinkFormat extends Link {
+		static create(value) {
+			var node = super.create();
+			node.setAttribute("href", value);
+			node.setAttribute("rel", "noreferrer");
+			return node;
+		}
+	}
+	Quill.register(LinkFormat, true);
 	editor.on("text-change", function() {
 		callback(local.value, local.index, editor.root.innerHTML);
 		update();
@@ -567,6 +582,9 @@ html, body {
 * { 
 	box-sizing: border-box;
 }
+.content p, .content h1, .content h2, .content h3, .content ul, .content ol {
+	margin-top : 16px;
+}
 button {
 	cursor : pointer;
 	background : transparent;
@@ -817,6 +835,7 @@ const getTagName = (name : Tag) : {
 	case "root":
 	case "column":
 	case "editor":
+	case "content":
 		return {
 			name : "div",
 			selfClosing : false
@@ -966,6 +985,9 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			output.dependencies.add("quill");
 			props["data-editor"] = "true";
 			output.scripts.push();
+		}
+		if(value === "content") {
+			props.className.add("content");
 		}
 		if(value === "fixed") {
 			addClass(
