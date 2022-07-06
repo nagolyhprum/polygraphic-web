@@ -1076,7 +1076,13 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		);
 		return props;
 	case "value":
-		props.value = value as string;
+		if(component.name === "date") {
+			if(value !== -1) {
+				props.value = moment(value as number).format("YYYY-MM-DD");
+			}
+		} else {
+			props.value = value as string;
+		}
 		return props;
 	case "placeholder":
 		props.placeholder = value as string;
