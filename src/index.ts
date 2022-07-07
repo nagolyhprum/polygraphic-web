@@ -99,9 +99,9 @@ const generateDependencies = (output : DocumentOutput) => {
 		case "onChange":
 			return eventDependency("onChange", `
 if(component.dataset.editor) {
-	var editor = Quill.find(component);
+	var editor = component.quill;
 	if(!editor) {
-		editor = new Quill(component, {
+		editor = component.quill = new Quill(component, {
 			modules: {
 				toolbar: true
 			},
@@ -452,7 +452,7 @@ function Component(component) {
 								value = "";
 							}
 							if(target.dataset.editor) {				
-								var editor = Quill.find(target);
+								var editor = target.quill;
 								if(editor !== document.activeElement) {
 									editor.root.innerHTML = value;
 								}
