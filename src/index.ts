@@ -99,23 +99,26 @@ const generateDependencies = (output : DocumentOutput) => {
 		case "onChange":
 			return eventDependency("onChange", `
 if(component.dataset.editor) {
-	var editor = new Quill(component, {
-		modules: {
-			toolbar: true
-		},
-		theme: 'snow'
-	});
-	// LINK 
-	var Link = Quill.import("formats/link");				
-	class LinkFormat extends Link {
-		static create(value) {
-			var node = super.create();
-			node.setAttribute("href", value);
-			node.setAttribute("rel", "noreferrer");
-			return node;
+	var editor = Quill.find(component);
+	if(!editor) {
+		editor = new Quill(component, {
+			modules: {
+				toolbar: true
+			},
+			theme: 'snow'
+		});
+		// LINK 
+		var Link = Quill.import("formats/link");				
+		class LinkFormat extends Link {
+			static create(value) {
+				var node = super.create();
+				node.setAttribute("href", value);
+				node.setAttribute("rel", "noreferrer");
+				return node;
+			}
 		}
+		Quill.register(LinkFormat, true);
 	}
-	Quill.register(LinkFormat, true);
 	editor.on("text-change", function() {
 		callback(local.value, local.index, editor.root.innerHTML);
 		update();
@@ -448,10 +451,10 @@ function Component(component) {
 							if(value === undefined || value === null) {
 								value = "";
 							}
-							if(target.dataset.editor) {								
-								var editor = target.querySelector(".ql-editor");
+							if(target.dataset.editor) {				
+								var editor = Quill.find(target);
 								if(editor !== document.activeElement) {
-									editor.innerHTML = value;
+									editor.root.innerHTML = value;
 								}
 							} else if(target.type === "date") {
 								if(value === -1) {
