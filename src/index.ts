@@ -499,7 +499,7 @@ function Component(component) {
 						var curr = value.map(function(it) {
 							return "id" in it ? it.id : it.key;
 						});
-						if(!cache.prevData) {
+						if(!cache.prevData && target.children.length) { // we need to inflate
 							for(var i = 0; i < target.children.length; i++) {
 								var item = value[i];
 								bind(target.children[i], Local(item, i))
