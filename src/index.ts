@@ -119,10 +119,12 @@ if(component.dataset.editor) {
 		}
 		Quill.register(LinkFormat, true);
 	}
-	editor.on("text-change", function() {
+	editor.off("text-change", component.quill.onTextChange);
+	component.quill.onTextChange = function() {
 		callback(local.value, local.index, editor.root.innerHTML);
 		update();
-	});
+	};
+	editor.on("text-change", component.quill.onTextChange);
 } else if(component.tagName.toLowerCase() === "select") {
 	component.onchange = function() {					
 		var value = this.value;
