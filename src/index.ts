@@ -231,13 +231,29 @@ component.oncontextmenu = function(e) {
 		case "observe":
 			return eventDependency("observe", `
 	var wrapped = Component(component);
-	listeners.push({
-		component : wrapped,
-		callback : callback,
-		local : local,
-		id : component.dataset.id
-	});
-	callback(local.value, local.index, wrapped)`, output);
+	var listener;
+	for(var i = 0; i < listeners.length; i++) {
+		if(listeners[i].raw === component) {
+			listener = listeners[i];
+			break;
+		}
+	}
+	if(!listener) {
+		listener = {
+			raw : component,
+			component : wrapped,
+			callback : callback,
+			local : local,
+			id : component.dataset.id
+		}
+		listeners.push(listener);
+		setTimeout(function() {
+			callback(listener.local.value, listener.local.index, wrapped)
+		});
+	} else {
+		listener.local = local;
+	}
+	`, output);
 		}
 	}).filter(_ => _).join("\n");
 };
@@ -295,10 +311,9 @@ function numberToMeasurement(input) {
 		return input + "px";
 	}
 }
-function Component(component) {
-	var cache = {};
+var getImage = (function() {
 	var images = {};
-	var getImage = function(src) {
+	return function(src) {
 		var promise = images[src];
 		if(!promise) {
 			promise = windowFetch(src).then(function(res) {
@@ -310,6 +325,9 @@ function Component(component) {
 		images[src] = promise;
 		return promise;
 	}
+})();
+function Component(component) {
+	var cache = {};
 	return new Proxy(component, {
 		get : function(target, key) {
 			if(key === "isMounted") {
@@ -469,9 +487,6 @@ function Component(component) {
 						}
 						return;
 					case "data":
-						if(!cache.prevData) {
-							target.innerHTML = "";
-						}
 						var prev = cache.prevData || [];
 						if(!value) {
 							return;
@@ -479,32 +494,39 @@ function Component(component) {
 						var curr = value.map(function(it) {
 							return "id" in it ? it.id : it.key;
 						});
-						// REMOVE
-						var removed = [];
-						for(var i = prev.length - 1; i >= 0; i--) {
-							if(!curr.includes(prev[i])) {
-								prev.splice(i, 1);
-								removed.push(target.removeChild(target.children[i]));
-							}
-						}
-						// ADD
-						for(var i = 0; i < curr.length; i++) {
-							if(!prev.includes(curr[i])) {
+						if(!cache.prevData) {
+							for(var i = 0; i < target.children.length; i++) {
 								var item = value[i];
-								// TODO : ATTEMPT TO REUSE REMOVED COMPONENTS
-								var child = adapters[target.dataset.id + "_" + item.adapter]();
-								bind(child, Local(item, i))
-								if(i < target.children.length) {
-									target.insertBefore(child, target.children[i]);
-								} else {
-									target.appendChild(child);
+								bind(target.children[i], Local(item, i))
+							}
+						} else {
+							// REMOVE
+							var removed = [];
+							for(var i = prev.length - 1; i >= 0; i--) {
+								if(!curr.includes(prev[i])) {
+									prev.splice(i, 1);
+									removed.push(target.removeChild(target.children[i]));
 								}
 							}
-						}
-						// MOVE / UPDATE
-						for(var i = 0; i < target.children.length; i++) {
-							target.children[i].__local__.value = value[i];
-							target.children[i].__local__.index = i;
+							// ADD
+							for(var i = 0; i < curr.length; i++) {
+								if(!prev.includes(curr[i])) {
+									var item = value[i];
+									// TODO : ATTEMPT TO REUSE REMOVED COMPONENTS
+									var child = adapters[target.dataset.id + "_" + item.adapter]();
+									bind(child, Local(item, i))
+									if(i < target.children.length) {
+										target.insertBefore(child, target.children[i]);
+									} else {
+										target.appendChild(child);
+									}
+								}
+							}
+							// MOVE / UPDATE
+							for(var i = 0; i < target.children.length; i++) {
+								target.children[i].__local__.value = value[i];
+								target.children[i].__local__.index = i;
+							}
 						}
 						cache.prevData = curr;
 						target.value = cache.value;
