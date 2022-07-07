@@ -449,16 +449,16 @@ function Component(component) {
 						render();
 						return;
 					case "value":
-						if(target !== document.activeElement) {
-							if(value === undefined || value === null) {
-								value = "";
+						if(value === undefined || value === null) {
+							value = "";
+						}
+						if(target.dataset.editor) {
+							var editor = target.quill;
+							if(editor.root.innerHTML !== document.activeElement) {
+								editor.root.innerHTML = value;
 							}
-							if(target.dataset.editor) {				
-								var editor = target.quill;
-								if(editor !== document.activeElement) {
-									editor.root.innerHTML = value;
-								}
-							} else if(target.type === "date") {
+						} else if(target !== document.activeElement) {
+							if(target.type === "date") {
 								if(value === -1) {
 									target.valueAsDate = null;
 								} else {
