@@ -1631,7 +1631,7 @@ const handle = <Global extends GlobalState, Local>({
 					return `class="${Array.from(value).join(" ")}"`;
 				}
 			} else {
-				return `${key}="${value}"`;
+				return `${key}="${escapeHtml(`${value}`)}"`;
 			}
 		}
 	}).filter(_ => _).join(" ");
