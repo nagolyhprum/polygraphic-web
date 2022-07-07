@@ -499,12 +499,15 @@ function Component(component) {
 						var curr = value.map(function(it) {
 							return "id" in it ? it.id : it.key;
 						});
-						if(!cache.prevData && target.children.length) { // we need to inflate
+						if(!cache.prevData && value.length === target.children.length) { // we need to hydrate
 							for(var i = 0; i < target.children.length; i++) {
 								var item = value[i];
 								bind(target.children[i], Local(item, i))
 							}
 						} else {
+							if(!cache.prevData) {
+								target.innerHTML = "";
+							}
 							// REMOVE
 							var removed = [];
 							for(var i = prev.length - 1; i >= 0; i--) {
