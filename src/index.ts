@@ -454,7 +454,7 @@ function Component(component) {
 						}
 						if(target.dataset.editor) {
 							var editor = target.quill;
-							if(editor.root.innerHTML !== document.activeElement) {
+							if(editor.root !== document.activeElement) {
 								editor.root.innerHTML = value;
 							}
 						} else if(target !== document.activeElement) {
