@@ -714,7 +714,7 @@ const scripts = [{
 	src : "https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.7/handlebars.min.js",
 }, {
 	dependency : "quill",
-	src : "https://cdn.quilljs.com/1.0.0/quill.js",
+	src : "https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js",
 }, {
 	dependency : "moment",
 	src : "https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js",
@@ -728,7 +728,7 @@ const scripts = [{
 
 const stylesheets = [{
 	dependency : "quill",
-	href : "https://cdn.quilljs.com/1.0.0/quill.snow.css",
+	href : "https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.css",
 }];
 
 const json = <Global extends GlobalState, Local>(
