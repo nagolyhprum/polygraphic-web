@@ -348,12 +348,24 @@ function Component(component) {
 						return;
 					case "metas":
 						Object.keys(value).forEach(function(key) {
-							document.querySelector("meta[name='" + key + "']").content = value[key];
+							var meta = document.querySelector("meta[name='" + key + "']");
+							if(!meta) {
+								meta = document.createElement("meta");
+								document.head.appendChild(meta);
+								meta.name = key;
+							}
+							meta.content = value[key];
 						});
 						return;
 					case "links":
 						Object.keys(value).forEach(function(key) {
-							document.querySelector("link[rel='" + key + "']").href = value[key];
+							var link = document.querySelector("link[rel='" + key + "']");
+							if(!link) {
+								link = document.createElement("link");
+								document.head.appendChild(link);
+								link.rel = key;
+							}
+							link.href = value[key];
 						});
 						return;
 					case "border":
