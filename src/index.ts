@@ -1815,9 +1815,9 @@ const document = ({
 			<meta name="theme-color" content="${manifest.theme_color}" />
 			<link rel="manifest" href="./${name}-manifest.json" />
 				` : ""}${
-	Object.keys(metas).map(key => `<meta name="${key}" content="${metas[key]}" />`).join("")
+	Object.keys(metas).filter(key => metas[key]).map(key => `<meta name="${key}" content="${metas[key]}" />`).join("")
 }${
-	Object.keys(links).map(key => `<link rel="${key}" href="${links[key]}" />`).join("")
+	Object.keys(links).filter(key => links[key]).map(key => `<link rel="${key}" href="${links[key]}" />`).join("")
 }`}
 		${stylesheets.map(href => `<link href="${href}" rel="stylesheet"/>`).join("")}
 		<link href="/shared.css" rel="stylesheet" />
