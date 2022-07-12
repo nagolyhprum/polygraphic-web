@@ -1006,14 +1006,12 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	switch(name) {
 	case "width":
 	case "height":
-		if(typeof value === "number") {
-			addClass(
-				name,
-				numberToMeasurement(value),
-				output,
-				props
-			);
-		}
+		addClass(
+			name,
+			numberToMeasurement(value as string | number),
+			output,
+			props
+		);
 		return props;
 	case "name":
 		addClass(
