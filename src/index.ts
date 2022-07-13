@@ -69,6 +69,7 @@ const getDisplay = <Global extends GlobalState, Local>(component : Component<Glo
 	case "text":
 	case "anchor":
 	case "image":
+	case "iframe":
 		return "inline-block";
 	}
 };
@@ -852,6 +853,7 @@ const getTagName = (name : Tag) : {
 	case "option":
 	case "select":
 	case "button":
+	case "iframe":
 		return {
 			name,
 			selfClosing : false
@@ -1020,6 +1022,10 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			output,
 			props
 		);
+		if(value === "iframe") {
+			props.frameBorder = "0"; 
+			props.allowFullScreen = "true";
+		}
 		if(value === "editor") {
 			output.dependencies.add("quill");
 			props["data-editor"] = "true";
@@ -1363,12 +1369,21 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		}
 		return props;
 	case "float":
-		return addClass(
-			"float",
-			`${value}`,
-			output,
-			props
-		);
+		if(value === "clear") {
+			return addClass(
+				"clear",
+				"both",
+				output,
+				props
+			);
+		} else {
+			return addClass(
+				"float",
+				`${value}`,
+				output,
+				props
+			);
+		}
 	case "manifest":
 	case "markdown":
 	case "onDragEnd":
