@@ -1362,6 +1362,13 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			props.contenteditable = `${value}`;
 		}
 		return props;
+	case "float":
+		return addClass(
+			"float",
+			`${value}`,
+			output,
+			props
+		);
 	case "manifest":
 	case "markdown":
 	case "onDragEnd":
@@ -1584,6 +1591,7 @@ ${generated}});`);
 	case "rotate":
 	case "index":
 	case "editable":
+	case "float":
 		return;
 	}
 	failed(name);
