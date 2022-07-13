@@ -41,6 +41,7 @@ const getDisplay = <Global extends GlobalState, Local>(component : Component<Glo
 	case "h3":
 	case "p":
 	case "checkbox":  //input
+	case "textarea":
 	case "date":
 	case "number":
 	case "input":
@@ -855,6 +856,7 @@ const getTagName = (name : Tag) : {
 	case "select":
 	case "button":
 	case "iframe":
+	case "textarea":
 		return {
 			name,
 			selfClosing : false
@@ -1369,6 +1371,9 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			props.contenteditable = `${value}`;
 		}
 		return props;
+	case "rel":
+		props.rel = `${value}`;
+		return props;
 	case "float":
 		if(value === "clear") {
 			return addClass(
@@ -1613,6 +1618,7 @@ ${generated}});`);
 	case "index":
 	case "editable":
 	case "float":
+	case "rel":
 		return;
 	}
 	failed(name);
