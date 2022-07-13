@@ -793,7 +793,8 @@ const json = <Global extends GlobalState, Local>(
 			component,
 			global: state,
 			local : state,
-			output
+			output,
+			index : 0
 		});
 		if(output.js.length) {
 			output.js.unshift(`${javascriptBundle(output.dependencies)}
@@ -1419,7 +1420,8 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 	value,
 	output,
 	global,
-	local
+	local,
+	index
 } : {
     component : Component<Global, Local>
     name : Key
@@ -1427,6 +1429,7 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
     output : DocumentOutput
     global : Global
     local : Local
+	index : number
 }) => {
 	switch(name) {
 	case "html":
@@ -1440,18 +1443,19 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 			component,
 			local,
 			global,
-			output
+			output,
+			index
 		}));
 		return;
 	case "adapters": {
 		const adapter = value as Component<Global, Local>["adapters"];
 		const data = component.data;
 		if(adapter) {
-			for(const index in adapter) {
-				const key = `${component.id}_${index}`;
+			for(const name in adapter) {
+				const key = `${component.id}_${name}`;
 				if(!output.cache.has(key)) {
 					output.cache.add(key);
-					const child = adapter[index]({
+					const child = adapter[name]({
 						global : global,
 						local : null,
 						parent : {
@@ -1462,6 +1466,7 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 					}).children?.[0];
 					if(child) {
 						const adapterOutput = handle({
+							index,
 							component : child,
 							global,
 							local : null,
@@ -1475,7 +1480,7 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 				}
 			}
 			if(data) {
-				data.forEach(local => {
+				data.forEach((local, index) => {
 					if(!local) return;
 					const parent : Component<Global, unknown> = {
 						width : 0,
@@ -1488,6 +1493,7 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 						parent
 					});
 					return handle({
+						index,
 						component : (parent.children || [])[0],
 						global,
 						local,
@@ -1618,12 +1624,14 @@ const handle = <Global extends GlobalState, Local>({
 	component,
 	local,
 	global,
-	output
+	output,
+	index,
 } : {
     component : Component<Global, Local>
     local : Local
     global : Global
     output : DocumentOutput
+	index : number
 }) : DocumentOutput => {
 	const {
 		name,
@@ -1636,6 +1644,7 @@ const handle = <Global extends GlobalState, Local>({
 			execute(generated, {
 				global,
 				local,
+				index,
 				event : component,
 				...stubs,
 				moment,
@@ -1676,6 +1685,7 @@ const handle = <Global extends GlobalState, Local>({
 	}
 	keys(component).forEach((name) => {
 		handleChildren({
+			index,
 			component,
 			output,
 			local,
