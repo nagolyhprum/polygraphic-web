@@ -80,7 +80,14 @@ const minifyCss = (css : string, minify : boolean) : string => {
 };
 
 const minifyJs = (js : string, minify : boolean) : string => {
-	return minify ? UglifyJS.minify(js).code : js;
+	if(minify) {
+		const result = UglifyJS.minify(js);
+		if(result.error) {
+			throw result.error;
+		}
+		return result.code;
+	}
+	return js;
 };
 
 const eventDependency = (name : string, code : string, output : DocumentOutput) => {
