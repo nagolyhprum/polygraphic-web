@@ -83,7 +83,11 @@ const minifyJs = (js : string, minify : boolean) : string => {
 	if(minify) {
 		const result = UglifyJS.minify(js);
 		if(result.error) {
-			return `console.error("${result.error.name}", "${result.error.message}", "${result.error.stack}");\n${js}`;
+			return `console.error(${JSON.stringify({
+				name : result.error.name,
+				message : result.error.message,
+				stack : result.error.stack,
+			})});\n${js}`;
 		}
 		return result.code;
 	}
