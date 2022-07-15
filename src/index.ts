@@ -1491,7 +1491,10 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 								html : []
 							}
 						});
-						output.js.push(`adapters.${key} = $('${minifyHtml(adapterOutput.html.join(""))}')`);
+						output.js.push(`adapters.${key} = $('${minifyHtml(adapterOutput.html.join(""), {
+							collapseWhitespace: true,
+							collapseInlineTagWhitespace: true
+						})}')`);
 					}
 				}
 			}
