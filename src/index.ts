@@ -741,8 +741,8 @@ const scripts = [{
 	dependency : "quill",
 	src : "https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js",
 }, {
-	dependency : "moment",
-	src : "https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment.min.js",
+	dependency : "moment",	
+	src : "https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js",
 }, {
 	dependency : "event.markdown",
 	src : "https://cdnjs.cloudflare.com/ajax/libs/showdown/2.0.3/showdown.min.js"
