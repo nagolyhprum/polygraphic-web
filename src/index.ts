@@ -688,7 +688,12 @@ export const html = <Global extends GlobalState, Local>(
 			}).join("\n"), minify),
 			...(result.js.length ? {
 				"shared.js" : sharedJs(result, minify),
-				[`${name}.js`] : minifyJs(result.js.join("\n") + "bind(document.body, Local(global, 0));", minify),
+				[`${name}.js`] : minifyJs(result.js.join("\n") + `bind(document.body, Local(global, 0));${result.analytics ? `
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag("js", new Date());
+gtag("config", "${result.analytics}");` : ""}
+				`, minify),
 			} : {})
 		};
 		if(result.manifest) {
@@ -783,6 +788,7 @@ const json = <Global extends GlobalState, Local>(
 		});
 		const output : DocumentOutput = {
 			name,
+			analytics : "",
 			dependencies,
 			js : [],
 			head : {
@@ -1043,7 +1049,6 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		if(value === "editor") {
 			output.dependencies.add("quill");
 			props["data-editor"] = "true";
-			output.scripts.push();
 		}
 		if(value === "content") {
 			props.className.add("content");
@@ -1401,6 +1406,9 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 				props
 			);
 		}
+	case "analytics":
+		output.analytics = `${value}`;
+		return props;
 	case "manifest":
 	case "markdown":
 	case "onDragEnd":
@@ -1633,6 +1641,7 @@ ${generated}});`);
 	case "editable":
 	case "float":
 	case "rel":
+	case "analytics":
 		return;
 	}
 	failed(name);
@@ -1866,7 +1875,8 @@ const document = ({
 		title,
 		metas,
 		links
-	}
+	},
+	analytics
 } : DocumentOutput) => {
 	return `<!doctype html>
     <html lang="en">
@@ -1889,7 +1899,9 @@ const document = ({
 	</head>
 	<body>
 		${html.join("")}
-		${scripts.map(src => `<script defer src="${src}"></script>`).join("")}
+		${[...(analytics ? [
+		`https://www.googletagmanager.com/gtag/js?id=${analytics}`
+	] : []), ...scripts].map(src => `<script defer src="${src}"></script>`).join("")}
 		${js.length ? `<script defer src="/shared.js"></script><script defer src="/${name}.js"></script>` : ""}
 	</body>
 </html>`;

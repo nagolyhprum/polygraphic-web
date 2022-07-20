@@ -3,6 +3,7 @@ import { Component, GlobalState } from "polygraphic";
 export type Manifest = Component<GlobalState, GlobalState>["manifest"]
 
 export type DocumentOutput = {
+    analytics : string
     name : string
     html : string[]
     js : string[]
