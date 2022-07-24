@@ -47,11 +47,12 @@ const getDisplay = <Global extends GlobalState, Local>(component : Component<Glo
 	case "input":
 	case "option":
 	case "select":
-	case "progress": // does not matter
+	case "progress":
 	case "scrollable":
 	case "stack":
 	case "editor":
 	case "content":
+	case "canvas":
 		return "block";
 	case "button":
 	case "column":
@@ -403,6 +404,89 @@ function Component(component) {
 							target.style.transform = "translate(" + numberToMeasurement(value.x) + "," + numberToMeasurement(value.y) + ")";
 						});
 						target.style.transition = "transform ${TIMEOUT}ms";
+						return;
+					case "draw":
+						var context = target.getContext("2d");
+						target.width = value.width;
+						target.height = value.height;
+						value.content.reduce(function(promise, item) {
+							var translate = item.translate || {};
+							return promise.then(function() {
+								var width = item.width,
+									height = item.height,
+									x = typeof item.left === "number" ? item.left :
+										typeof item.right === "number" ? value.width - width - item.right :
+										item.x,									
+									y = typeof item.top === "number" ? item.top :
+										typeof item.bottom === "number" ? value.height - height - item.bottom :
+										item.y;
+								context.fillStyle = item.fill || "transparent";
+								context.strokeStyle = item.stroke || "transparent";
+								if(item.type === "image") {
+									return getImage(item.src).then(function(src) {
+										return new Promise(function(resolve) {
+											var image = new Image();
+											image.onload = function() {
+												if(!width && !height) {
+													width = image.width;
+													height = image.height;
+												} else if(!width) {
+													width = image.width * height / image.height;
+												} else if(!height) {
+													height = image.height * width / image.hwidth;
+												}
+												if(!x) {
+													x = typeof item.left === "number" ? item.left :
+														typeof item.right === "number" ? value.width - width - item.right :
+														item.x;
+												}
+												if(!y) {												
+													y = typeof item.top === "number" ? item.top :
+														typeof item.bottom === "number" ? value.height - height - item.bottom :
+														item.y;
+												}
+												context.save();
+												context.translate((translate.x || 0) * width, (translate.y || 0) * height);
+												context.drawImage(image, x, y, width, height);
+												context.restore();
+												resolve();
+											};
+											image.src = src;
+										})
+									});
+								} else if(item.type === "rect") {
+									context.save();
+									context.translate((translate.x || 0) * width, (translate.y || 0) * height);
+									if(item.round) {
+										context.beginPath();
+										context.moveTo(x + item.round, y);
+										context.lineTo(x + width - item.round, y);
+										context.quadraticCurveTo(x + width, y, x + width, y + item.round);
+										context.lineTo(x + width, y + height - item.round);
+										context.quadraticCurveTo(x + width, y + height, x + width - item.round, y + height);
+										context.lineTo(x + item.round, y + height);
+										context.quadraticCurveTo(x, y + height, x, y + height - item.round);
+										context.lineTo(x, y + item.round);
+										context.quadraticCurveTo(x, y, x + item.round, y);
+										context.closePath();
+									} else {
+										context.rect(x, y, width, height);
+									}
+									context.fill();
+									context.stroke();
+									context.restore();
+								} else if(item.type === "text") {
+									context.save();
+									context.translate((translate.x || 0) * width, (translate.y || 0) * height);
+									context.font = (item.size || 16) + "px " + (item.family || "Courier New");
+									context.textBaseline = item.baseline || "top";
+									context.textAlign = item.align || "start";
+									context.fillText(item.text, x, y);
+									context.strokeText(item.text, x, y);
+									context.restore();
+								}
+							});
+						}, Promise.resolve());
 						return;
 					case "src":
 						if(value) {
@@ -874,6 +958,7 @@ const getTagName = (name : Tag) : {
 	case "button":
 	case "iframe":
 	case "textarea":
+	case "canvas":
 		return {
 			name,
 			selfClosing : false
@@ -1300,20 +1385,24 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			output,
 			props
 		);
+	case "min": 
 	case "max": {
-		const max = value as Component<Global, Local>["max"];
-		if(max?.width) {
+		const size = value as {
+			width ?: number
+			height ?: number
+		};
+		if(size?.width) {
 			addClass(
-				"max-width",
-				numberToMeasurement(max.width),
+				`${name}-width`,
+				numberToMeasurement(size.width),
 				output,
 				props
 			);
 		}
-		if(max?.height) {
+		if(size?.height) {
 			addClass(
-				"max-height",
-				numberToMeasurement(max.height),
+				`${name}-height`,
+				numberToMeasurement(size.height),
 				output,
 				props
 			);
@@ -1409,6 +1498,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	case "analytics":
 		output.analytics = `${value}`;
 		return props;
+	case "draw":
 	case "manifest":
 	case "markdown":
 	case "onDragEnd":
@@ -1623,6 +1713,7 @@ ${generated}});`);
 	case "crossAxisAlignment":
 	case "round":
 	case "clip":
+	case "draw":
 	case "shadow":
 	case "alt":
 	case "clickable":
@@ -1631,6 +1722,7 @@ ${generated}});`);
 	case "target":
 	case "href":
 	case "queries":
+	case "min":
 	case "max":
 	case "columns":
 	case "direction":
