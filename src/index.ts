@@ -142,9 +142,6 @@ if(component.dataset.editor) {
 } else if(component.tagName.toLowerCase() === "select") {
 	component.onchange = function() {					
 		var value = this.value;
-		if(this.type === "number") {
-			value = this.valueAsNumber;
-		}
 		protect(function() {
 			callback(local.value, local.index, value);
 			update();
@@ -170,8 +167,12 @@ if(component.dataset.editor) {
 		update();
 	};
 } else {
-	component.oninput = function() {					
-		callback(local.value, local.index, this.value || this.innerText);
+	component.oninput = function() {				
+		var value = this.value || this.innerText;	
+		if(this.type === "number") {
+			value = this.valueAsNumber;
+		}				
+		callback(local.value, local.index, value);
 		update();
 	};
 }`, output);
