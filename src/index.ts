@@ -195,6 +195,8 @@ update();`, output);
 var observer = new ResizeObserver(function(entries) {
 	var rect = component.getBoundingClientRect();
 	callback(local.value, local.index, {
+		x : fallback(rect.x, rect.left),
+		y : fallback(rect.y, rect.top),
 		width: rect.width,
 		height: rect.height,
 	});
