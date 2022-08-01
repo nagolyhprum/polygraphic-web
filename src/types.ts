@@ -4,6 +4,7 @@ export type Manifest = Component<GlobalState, GlobalState>["manifest"]
 
 export type DocumentOutput = {
     analytics : string
+    recaptcha : string
     name : string
     html : string[]
     js : string[]

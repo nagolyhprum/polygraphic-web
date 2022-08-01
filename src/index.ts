@@ -718,6 +718,9 @@ html, body {
 	font-size : 16px;
 	font-family: 'Roboto', sans-serif;
 }
+.grecaptcha-badge {
+	opacity : 0;
+}
 * { 
 	box-sizing: border-box;
 }
@@ -759,7 +762,6 @@ export const html = <Global extends GlobalState, Local>(
 		const files : Record<string, string | Buffer> = {			
 			[`${name}.html`] : minify ? minifyHtml(document(result), {
 				collapseWhitespace: true,
-				collapseInlineTagWhitespace: true
 			}) : document(result),
 			"shared.css" : sharedCss(minify),
 			[`${name}.css`] : minifyCss(Object.keys(result.css.queries).map(query => {
@@ -874,6 +876,7 @@ const json = <Global extends GlobalState, Local>(
 		const output : DocumentOutput = {
 			name,
 			analytics : "",
+			recaptcha : "",
 			dependencies,
 			js : [],
 			head : {
@@ -1499,6 +1502,10 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	case "analytics":
 		output.analytics = `${value}`;
 		return props;
+	case "recaptcha":
+		output.dependencies.add("recaptcha");
+		output.recaptcha = `${value}`;
+		return props;
 	case "draw":
 	case "manifest":
 	case "markdown":
@@ -1592,7 +1599,6 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 						});
 						output.js.push(`adapters.${key} = $('${minifyHtml(adapterOutput.html.join(""), {
 							collapseWhitespace: true,
-							collapseInlineTagWhitespace: true
 						})}')`);
 					}
 				}
@@ -1735,6 +1741,7 @@ ${generated}});`);
 	case "float":
 	case "rel":
 	case "analytics":
+	case "recaptcha":
 		return;
 	}
 	failed(name);
@@ -1824,6 +1831,20 @@ const handle = <Global extends GlobalState, Local>({
 };
 
 const library = (dependencies : Set<string>) => [{
+	dependency : "recaptcha",
+	code : `
+var recaptcha = {
+	execute : function(callback) {
+		window.onRecaptcha = function(code) {
+			callback({
+				code : code
+			});
+			grecaptcha.reset();
+		};
+		grecaptcha.execute();
+	}
+};`
+}, {
 	dependency : "debounce",
 	code : `
 var debounce = (function() {
@@ -1969,7 +1990,8 @@ const document = ({
 		metas,
 		links
 	},
-	analytics
+	analytics,
+	recaptcha
 } : DocumentOutput) => {
 	return `<!doctype html>
     <html lang="en">
@@ -1991,8 +2013,11 @@ const document = ({
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 	</head>
 	<body>
+		${recaptcha ? `<div class="g-recaptcha" data-sitekey="${recaptcha}" data-callback="onRecaptcha" data-size="invisible"></div>` : ""}
 		${html.join("")}
-		${[...(analytics ? [
+		${[...(recaptcha ? [
+		"https://www.google.com/recaptcha/api.js"
+	] : []), ...(analytics ? [
 		`https://www.googletagmanager.com/gtag/js?id=${analytics}`
 	] : []), ...scripts].map(src => `<script defer src="${src}"></script>`).join("")}
 		${js.length ? `<script defer src="/shared.js"></script><script defer src="/${name}.js"></script>` : ""}
