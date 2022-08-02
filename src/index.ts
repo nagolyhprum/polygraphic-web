@@ -664,6 +664,7 @@ function Component(component) {
 						target.style.right = typeof value.right === "number" ? value.right + "px" : "auto";
 						target.style.bottom = typeof value.bottom === "number" ? value.bottom + "px" : "auto";
 						target.style.left = typeof value.left === "number" ? value.left + "px" : "auto";
+						target.style.transition = "top ${TIMEOUT}ms, right ${TIMEOUT}ms, bottom ${TIMEOUT}ms, left ${TIMEOUT}ms";
 						return;
 					case "background":
 						target.style.background = value;
