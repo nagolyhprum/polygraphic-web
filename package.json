@@ -1,6 +1,6 @@
 {
   "name": "polygraphic-web",
-  "version": "0.136.3",
+  "version": "0.136.4",
   "description": "A framework for building web applications",
   "source": "src/index.ts",
   "main": "dist/index.js",
