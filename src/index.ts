@@ -660,11 +660,14 @@ function Component(component) {
 						target.value = cache.value;
 						return;
 					case "position":
+						var shouldTransition = target.style.top || target.style.right || target.style.bottom || target.style.left;
 						target.style.top = typeof value.top === "number" ? value.top + "px" : "auto";
 						target.style.right = typeof value.right === "number" ? value.right + "px" : "auto";
 						target.style.bottom = typeof value.bottom === "number" ? value.bottom + "px" : "auto";
 						target.style.left = typeof value.left === "number" ? value.left + "px" : "auto";
-						target.style.transition = "top ${TIMEOUT}ms, right ${TIMEOUT}ms, bottom ${TIMEOUT}ms, left ${TIMEOUT}ms";
+						if(shouldTransition) {
+							target.style.transition = "top ${TIMEOUT}ms, right ${TIMEOUT}ms, bottom ${TIMEOUT}ms, left ${TIMEOUT}ms";
+						}
 						return;
 					case "background":
 						target.style.background = value;
