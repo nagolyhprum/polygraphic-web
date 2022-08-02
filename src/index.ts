@@ -1338,15 +1338,12 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		}
 		return props;
 	case "clickable":
-		if(value === false) {
-			addClass(
-				"pointer-events",
-				"none",
-				output,
-				props
-			);
-		}
-		return props;
+		return addClass(
+			"pointer-events",
+			value ? "auto" : "none",
+			output,
+			props
+		);
 	case "whitespace":
 		return addClass(
 			"white-space",
