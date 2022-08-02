@@ -192,7 +192,7 @@ callback(local.value, local.index);
 update();`, output);
 		case "onResize":
 			return eventDependency("onResize", `
-var observer = new ResizeObserver(function(entries) {
+component.onResize = function() {
 	var rect = component.getBoundingClientRect();
 	callback(local.value, local.index, {
 		x : fallback(rect.x, rect.left),
@@ -201,7 +201,8 @@ var observer = new ResizeObserver(function(entries) {
 		height: rect.height,
 	});
 	update();
-});
+};
+var observer = new ResizeObserver(component.onResize);
 observer.observe(component);`, output);
 		case "onDrop":
 			return eventDependency("onDrop", `
@@ -352,6 +353,9 @@ function Component(component) {
 	var cache = {};
 	return new Proxy(component, {
 		get : function(target, key) {
+			if(key === "onResize") {
+				return component.onResize;
+			}
 			if(key === "isMounted") {
 				return document.body.contains(component);
 			}
@@ -513,6 +517,9 @@ function Component(component) {
 							target.style[key] = numberToMeasurement(value);
 						});
 						target.style.transition = key + " ${TIMEOUT}ms";
+						return;
+					case "resize":						
+						component.onResize();
 						return;
 					case "focus":
 						windowSetTimeout(function() {
@@ -1526,6 +1533,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	case "adapters":
 	case "data":
 	case "focus":
+	case "resize":
 	case "animation":
 	case "funcs":
 	case "bundle":
@@ -1712,6 +1720,7 @@ ${generated}});`);
 	case "placeholder":
 	case "enabled":
 	case "focus":
+	case "resize":
 	case "size":
 	case "color":
 	case "animation":
