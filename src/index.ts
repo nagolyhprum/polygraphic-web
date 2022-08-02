@@ -1961,6 +1961,49 @@ audio.play = (function() {
 })();
 `
 }, {
+	dependency : "audio.play",
+	code : `
+(function() {
+	var chunks = [];
+	var mediaRecorder;
+	audio.record = function(callback) {
+		chunks.splice(0);
+		var onStop = () => {
+			mediaRecorder.onstop = function () {
+				var blob = new Blob(chunks, { 
+					type : "audio/webm", 
+				});
+				var url = window.URL.createObjectURL(blob);
+				callback({
+					url : url,
+					blob : blob,
+				});
+			};
+		};
+		if(mediaRecorder) {		
+			onStop();
+			mediaRecorder.start();
+		} else {
+			if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+				navigator.mediaDevices.getUserMedia({
+					audio : true,
+				}).then(function (stream) {
+					mediaRecorder = new MediaRecorder(stream);
+					mediaRecorder.ondataavailable = function (e) {
+						chunks.push(e.data);
+					};
+					onStop();
+					mediaRecorder.start();
+				});
+			}
+		}
+	};
+	audio.stop = function() {
+		mediaRecorder && mediaRecorder.stop();
+	};
+})();
+`
+}, {
 	dependency : "speech.listen",
 	code : `
 var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
