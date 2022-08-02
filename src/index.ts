@@ -520,6 +520,7 @@ function Component(component) {
 						return;
 					case "resize":						
 						component.onResize();
+						delete cache[key];
 						return;
 					case "focus":
 						windowSetTimeout(function() {
