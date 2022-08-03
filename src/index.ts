@@ -518,9 +518,10 @@ function Component(component) {
 						});
 						target.style.transition = key + " ${TIMEOUT}ms";
 						return;
-					case "resize":						
-						component.onResize();
-						delete cache[key];
+					case "resize":		
+						if(value) {
+							component.onResize();
+						}
 						return;
 					case "focus":
 						windowSetTimeout(function() {
