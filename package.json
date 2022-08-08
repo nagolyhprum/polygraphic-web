@@ -29,7 +29,7 @@
     "html-escaper": "^3.0.3",
     "html-minifier": "^4.0.0",
     "moment": "^2.29.1",
-    "polygraphic": "^0.149.3",
+    "polygraphic": "^0.150.0",
     "showdown": "^2.0.3",
     "uglify-js": "^3.16.0"
   },
