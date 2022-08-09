@@ -1940,14 +1940,14 @@ speech.speak = function(config) {
 	}
 };`
 }, {
-	dependency : "navigator",
+	dependency : "device",
 	code : `
-var windowNavigator = window.navigator, navigator = {};`
+var device = {};`
 }, {
-	dependency : "navigator.share",
+	dependency : "device.share",
 	code : `
-navigator.share = function(config) {
-	if(navigator.canShare && navigator.canShare(config)) {
+device.share = function(config) {
+	if(navigator.canShare && navigator.share && navigator.canShare(config)) {
 		navigator.share(config);
 	} else {
 		navigator.clipboard.writeText([config.title, config.text, config.url].filter(function(it) {
