@@ -1940,6 +1940,23 @@ speech.speak = function(config) {
 	}
 };`
 }, {
+	dependency : "navigator",
+	code : `
+var windowNavigator = window.navigator, navigator = {};`
+}, {
+	dependency : "navigator.share",
+	code : `
+navigator.share = function(config) {
+	if(navigator.canShare && navigator.canShare(config)) {
+		navigator.share(config);
+	} else {
+		navigator.clipboard.writeText([config.title, config.text, config.url].filter(function(it) {
+			return it;
+		}).join("\n"));
+		window.Toaster && window.Toaster.pushToast({ message : "Copied link to clipboard." })
+	}
+};`
+}, {
 	dependency : "audio",
 	code : `
 var audio = {};`
