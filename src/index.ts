@@ -1952,7 +1952,7 @@ navigator.share = function(config) {
 	} else {
 		navigator.clipboard.writeText([config.title, config.text, config.url].filter(function(it) {
 			return it;
-		}).join("\n"));
+		}).join("\\n"));
 		window.Toaster && window.Toaster.pushToast({ message : "Copied link to clipboard." })
 	}
 };`
