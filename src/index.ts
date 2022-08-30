@@ -1254,7 +1254,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		}
 		return props;
 	case "placeholder":
-		props.placeholder = ((value || "") as string).replace(/\n/g, "&#10;");
+		props.placeholder = ((value || "") as string);
 		return props;
 	case "enabled":
 		props.disabled = value === false ? "disabled" : "";
