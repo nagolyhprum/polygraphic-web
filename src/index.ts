@@ -117,7 +117,7 @@ if(component.dataset.editor) {
 	if(!editor) {
 		editor = component.quill = new Quill(component, {
 			modules: {
-				toolbar: true
+				toolbar: true,
 			},
 			theme: 'snow'
 		});
@@ -132,6 +132,47 @@ if(component.dataset.editor) {
 			}
 		}
 		Quill.register(LinkFormat, true);
+		// IMAGE
+		var BlockEmbed = Quill.import("blots/block/embed");		
+		class ImageBlot extends BlockEmbed {
+			static create(value) {
+				var node = super.create();
+				if(typeof value === "string") {
+					node.style.backgroundImage = "url(" + value + ")";
+					windowFetch(value).then(function (res){
+						return res.arrayBuffer().then(function (buffer) {
+							var type = value.slice("data:".length, value.indexOf(";"));
+							events[component.dataset.id].onDrop(
+								local.value, 
+								local.index, 
+								[new File([buffer], "image." + type.split("/").pop(), {
+									type
+								})]
+							).then(function(value) {
+								node.style.backgroundImage = "url(" + value + ")";
+							});
+						});
+					})
+				} else {
+					node.style.backgroundImage = value.src;
+				}
+				// custom
+				node.style.backgroundSize = "contain";
+				// static
+				node.style.backgroundPosition = "center";
+				node.style.backgroundRepeat = "no-repeat";
+				node.style.height = "480px";
+				return node;
+			}
+			static value(node) {
+				return {
+					src : node.style.backgroundImage,
+				};
+			}
+		}
+		ImageBlot.blotName = 'image';
+		ImageBlot.tagName = 'div';
+		Quill.register(ImageBlot, true);
 	}
 	editor.off("text-change", component.quill.onTextChange);
 	component.quill.onTextChange = function() {
@@ -1845,6 +1886,17 @@ const handle = <Global extends GlobalState, Local>({
 };
 
 const library = (dependencies : Set<string>) => [{
+	dependency : "promise",
+	code : `
+var promise = function(callback) {
+	return new Promise(function (onResolve, onReject) {
+		return callback({
+			onResolve : onResolve,
+			onReject : onReject,
+		})
+	});
+};`
+}, {
 	dependency : "recaptcha",
 	code : `
 var recaptcha = {
