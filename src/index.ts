@@ -780,7 +780,7 @@ html, body {
 * { 
 	box-sizing: border-box;
 }
-.content p, .content h1, .content h2, .content h3, .content ul, .content ol {
+.content p, .content h1, .content h2, .content h3, .content ul, .content ol, .content div {
 	margin-top : 16px;
 }
 button {
