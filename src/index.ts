@@ -117,7 +117,12 @@ if(component.dataset.editor) {
 	if(!editor) {
 		editor = component.quill = new Quill(component, {
 			modules: {
-				toolbar: true,
+				toolbar: [
+					[{ 'header': [1, 2, 3, false] }],
+					['bold', 'italic', 'underline', 'link'],
+					[{ 'list': 'ordered' }, { 'list': 'bullet' }],
+					['image']
+				]
 			},
 			theme: 'snow'
 		});
@@ -247,7 +252,6 @@ var observer = new ResizeObserver(component.onResize);
 observer.observe(component);`, output);
 		case "onDrop":
 			return eventDependency("onDrop", `
-if(component.dataset.editor) return;
 function getFiles(event) {
 	if (event.dataTransfer.items) {
 		return Array.from(event.dataTransfer.items).filter(function(item) {
@@ -269,8 +273,17 @@ component.ondragenter = prevent
 component.ondragleave = prevent
 component.ondragover = prevent
 component.ondrop = function(event) {
-	callback(local.value, local.index, getFiles(event));
-	update();
+	if(component.dataset.editor) {
+		const reader = new FileReader();
+		reader.addEventListener("load", function () {
+		  component.quill.insertEmbed(component.quill.getSelection().index, 'image', reader.result, 'user');
+		  update();
+		}, false);
+		reader.readAsDataURL(getFiles(event)[0]);
+	} else {
+		callback(local.value, local.index, getFiles(event));
+		update();
+	}
 	return prevent(event);
 };`, output);
 		case "onClick":
