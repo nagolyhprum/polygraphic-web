@@ -787,7 +787,7 @@ html, body {
 	width : 100%;
 	min-height : 100%;
 	font-size : 16px;
-	font-family: 'Roboto', sans-serif;
+	font-family: '${name}', sans-serif;
 }
 .grecaptcha-badge {
 	opacity : 0;
