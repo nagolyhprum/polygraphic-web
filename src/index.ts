@@ -247,6 +247,7 @@ var observer = new ResizeObserver(component.onResize);
 observer.observe(component);`, output);
 		case "onDrop":
 			return eventDependency("onDrop", `
+if(component.dataset.editor) return;
 function getFiles(event) {
 	if (event.dataTransfer.items) {
 		return Array.from(event.dataTransfer.items).filter(function(item) {
