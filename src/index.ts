@@ -282,7 +282,8 @@ component.onclick = function() {
 	})
 };`, output);
 		case "onContext":
-			return eventDependency("onContext", `			
+			return eventDependency("onContext", `	
+component.style.userSelect = "none";
 component.oncontextmenu = function(e) {
 	protect(function() {
 		callback(local.value, local.index/*,event*/);
