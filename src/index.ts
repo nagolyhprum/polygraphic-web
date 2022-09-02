@@ -781,7 +781,7 @@ function bind(root, local) {
 }
 `, minify);
 
-const sharedCss = (minify : boolean) => minifyCss(`@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
+const sharedCss = (name : string, minify : boolean) => minifyCss(`@import url('https://fonts.googleapis.com/css2?family=${name || "Roboto"}:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
 html, body {
 	display : flex;
 	width : 100%;
@@ -834,7 +834,7 @@ export const html = <Global extends GlobalState, Local>(
 			[`${name}.html`] : minify ? minifyHtml(document(result), {
 				collapseWhitespace: true,
 			}) : document(result),
-			"shared.css" : sharedCss(minify),
+			"shared.css" : sharedCss(result.font, minify),
 			[`${name}.css`] : minifyCss(Object.keys(result.css.queries).map(query => {
 				return `${query}{\n\t${
 					Object.keys(result.css.queries?.[query] || {}).map(className => {
@@ -1257,6 +1257,9 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		if(value === "checkbox" || value === "number") {
 			props.type = value as string;
 		}
+		return props;
+	case "font":
+		output.font = value as string;
 		return props;
 	case "background":
 		return addClass(
@@ -1775,6 +1778,7 @@ ${generated}});`);
 	case "height":
 	case "name":
 	case "background":
+	case "font":
 	case "grow":
 	case "data":
 	case "position":
