@@ -16,6 +16,7 @@ export type DocumentOutput = {
     }
     css : {
         letter : string
+        psuedo : string
         query : string
         cache : {
             [className : string] : {

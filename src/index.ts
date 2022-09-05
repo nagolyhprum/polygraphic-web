@@ -838,7 +838,7 @@ export const html = <Global extends GlobalState, Local>(
 			[`${name}.css`] : minifyCss(Object.keys(result.css.queries).map(query => {
 				return `${query}{\n\t${
 					Object.keys(result.css.queries?.[query] || {}).map(className => {
-						return `.${className}{${
+						return `${className}{${
 							Object.keys(result.css.queries?.[query]?.[className] || {}).map(styleName => {
 								return `${styleName}:${result.css.queries?.[query]?.[className]?.[styleName]}`;
 							}).join(";")}}`;
@@ -945,6 +945,7 @@ const json = <Global extends GlobalState, Local>(
 			local : state
 		});
 		const output : DocumentOutput = {
+			font : "",
 			name,
 			analytics : "",
 			recaptcha : "",
@@ -956,6 +957,7 @@ const json = <Global extends GlobalState, Local>(
 				metas: {}
 			},
 			css : {
+				psuedo : "",
 				cache : {},
 				letter : "a",
 				queries : {},
@@ -1099,8 +1101,9 @@ const numberToMeasurement = (input : string | number | null | undefined) : strin
 };
 
 const addClass = (name : string, value : string, output : DocumentOutput, props : TagProps) : TagProps => {
+	const queryCache = output.css.query + output.css.psuedo;
 	{ // remove conflicts
-		const query = output.css.cache[output.css.query] = output.css.cache[output.css.query] || {};
+		const query = output.css.cache[queryCache] = output.css.cache[queryCache] || {};
 		const style = query[name] = query[name] || {};
 		// remove conflicts
 		Object.keys(style).forEach(value => {
@@ -1110,7 +1113,7 @@ const addClass = (name : string, value : string, output : DocumentOutput, props 
 			}
 		});
 	}
-	const cache = output.css.cache[output.css.query]?.[name]?.[value];
+	const cache = output.css.cache[queryCache]?.[name]?.[value];
 	if(cache) {
 		props.className.add(cache);
 	} else {
@@ -1131,13 +1134,13 @@ const addClass = (name : string, value : string, output : DocumentOutput, props 
 			output.css.letter = next.map(it => it + "a".charCodeAt(0)).map(it => String.fromCharCode(it)).join("");
 		}
 		{ // set up the cache
-			const query = output.css.cache[output.css.query] = output.css.cache[output.css.query] || {};
+			const query = output.css.cache[queryCache] = output.css.cache[queryCache] || {};
 			const style = query[name] = query[name] || {};
 			style[value] = letter;
 		}
 		{ // set up the output
 			const query = output.css.queries[output.css.query] = output.css.queries[output.css.query] || {};
-			const className = query[letter] = query[letter] || {};
+			const className = query["." + letter + output.css.psuedo] = query["." + letter + output.css.psuedo] || {};
 			className[name] = value;
 		}
 		props.className.add(letter);
@@ -1577,6 +1580,33 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		output.dependencies.add("recaptcha");
 		output.recaptcha = `${value}`;
 		return props;
+	case "hover": {
+		const {
+			width,
+			height,
+			name,
+			children,
+			...extras
+		} = value as Component<Global, Local>;
+		output.css.psuedo = ":hover";
+		keys(extras).forEach((name) => {
+			handleProp({
+				component,
+				name,
+				output,
+				props,
+				value: extras[name]
+			});
+		});
+		output.css.psuedo = "";
+		if(children?.length) {
+			const query = output.css.queries["@media all"] = output.css.queries["@media all"] || {};
+			const name = `[data-id=${component.id}]:hover > [data-id=${children[0].id}]`;
+			const className = query[name] = query[name] || {};
+			className["display"] = getDisplay(children[0]);
+		}
+		return props;
+	}
 	case "draw":
 	case "manifest":
 	case "markdown":
@@ -1759,10 +1789,26 @@ ${generated}});`);
 		return;
 	case "markdown":
 		output.html.push(converter.makeHtml(value as string));
-		return props;
+		return;
 	case "manifest":
 		output.manifest = value as Manifest;
-		return props;
+		return;
+	case "hover": {
+		const { children } = (value as Component<Global, Local>);
+		if(children?.length) {
+			children.forEach(component => handle({
+				component: {
+					...component,
+					visible : false
+				},
+				local,
+				global,
+				output,
+				index
+			}));
+		}
+		return;
+	}
 	case "links":
 	case "metas":
 	case "title":
@@ -1821,7 +1867,7 @@ ${generated}});`);
 	failed(name);
 };
 
-const keys = <T>(input : T) => Object.keys(input) as (keyof T)[];
+const keys = <T extends Record<string, unknown>>(input : T) => Object.keys(input) as (keyof T)[];
 
 const handle = <Global extends GlobalState, Local>({
 	component,
