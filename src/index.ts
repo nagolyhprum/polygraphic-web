@@ -115,18 +115,6 @@ const generateDependencies = (output : DocumentOutput) => {
 if(component.dataset.editor) {
 	var editor = component.quill;
 	if(!editor) {
-		editor = component.quill = new Quill(component, {
-			modules: {
-				syntax: true,
-				toolbar: [
-					[{ 'header': [1, 2, 3, false] }],
-					['bold', 'italic', 'underline', 'link'],
-					[{ 'list': 'ordered' }, { 'list': 'bullet' }],
-					['image', 'code-block']
-				]
-			},
-			theme: 'snow'
-		});
 		// LINK 
 		var Link = Quill.import("formats/link");				
 		class LinkFormat extends Link {
@@ -138,6 +126,45 @@ if(component.dataset.editor) {
 			}
 		}
 		Quill.register(LinkFormat, true);
+		// COUNTER
+		class WordCount {
+			constructor(quill, props) {
+				this.quill = quill;
+				this.props = props;
+				this.container = this.quill.container;
+				this.quill.on('text-change', this.update.bind(this));
+				this.toolbar = quill.getModule('toolbar');
+				this.update();  // Account for initial contents
+			}
+		
+			calculate(){
+				let text = this.quill.getText();
+				text = text.trim();
+				// Splitting empty text returns a non-empty array
+				return text.length > 0 ? text.split(/\\s+/).length : 0;
+			}
+		
+			update() {
+				let length = this.calculate();
+				let label = 'word';
+				if (length !== 1) {
+					label += 's';
+				}
+				this.toolbar = this.quill.getModule('toolbar');
+				let countView = document.getElementById('quill-word-count');
+				if (!countView) {
+					let countView = document.createElement('span');
+					countView.id = 'quill-word-count';
+					this.toolbar.container.appendChild(countView);
+					countView.innerHTML = length + ' ' + label;
+				}
+				else{
+					countView = document.getElementById('quill-word-count');
+					countView.innerHTML = length + ' ' + label;
+				}
+			}
+		}
+		Quill.register('modules/wordCount', WordCount);
 		// IMAGE
 		var BlockEmbed = Quill.import("blots/block/embed");		
 		class ImageBlot extends BlockEmbed {
@@ -176,8 +203,24 @@ if(component.dataset.editor) {
 		ImageBlot.blotName = 'image';
 		ImageBlot.tagName = 'img';
 		Quill.register(ImageBlot, true);
+		// CREATE
+		editor = component.quill = new Quill(component, {
+			modules: {
+				syntax: true,
+				wordCount: true,
+				toolbar: [
+					[{ 'header': [1, 2, 3, false] }],
+					['bold', 'italic', 'underline', 'link'],
+					[{ 'list': 'ordered' }, { 'list': 'bullet' }],
+					['image', 'code-block']
+				]
+			},
+			theme: 'snow'
+		});
 	}
-	editor.off("text-change", component.quill.onTextChange);
+	if(component.quill.onTextChange) {
+		editor.off("text-change", component.quill.onTextChange);
+	}
 	component.quill.onTextChange = function() {
 		callback(local.value, local.index, editor.root.innerHTML);
 		update();
