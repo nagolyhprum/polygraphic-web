@@ -117,11 +117,12 @@ if(component.dataset.editor) {
 	if(!editor) {
 		editor = component.quill = new Quill(component, {
 			modules: {
+				syntax: true,
 				toolbar: [
 					[{ 'header': [1, 2, 3, false] }],
 					['bold', 'italic', 'underline', 'link'],
 					[{ 'list': 'ordered' }, { 'list': 'bullet' }],
-					['image']
+					['image', 'code-block']
 				]
 			},
 			theme: 'snow'
@@ -902,6 +903,9 @@ const scripts = [{
 	src : "https://cdnjs.cloudflare.com/ajax/libs/handlebars.js/4.7.7/handlebars.min.js",
 }, {
 	dependency : "quill",
+	src : "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/highlight.min.js"
+}, {
+	dependency : "quill",
 	src : "https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.min.js",
 }, {
 	dependency : "moment",	
@@ -915,6 +919,9 @@ const scripts = [{
 }];
 
 const stylesheets = [{
+	dependency : "quill",
+	href : "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css",
+}, {
 	dependency : "quill",
 	href : "https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.css",
 }];
@@ -997,6 +1004,11 @@ global.os = "web";
 ${output.manifest ? `global = localStorage.${name} ? JSON.parse(localStorage.${name}) : global;` : ""}
 ${output.manifest ? `onUpdate.push(function() {
 	localStorage.${name} = JSON.stringify(global);
+});` : ""}
+${output.dependencies.has("quill") ? `onUpdate.push(function() {
+	Array.from(document.querySelectorAll(".content pre.ql-syntax")).forEach(function(element) {
+		hljs.highlightElement(element);
+	});
 });` : ""}`);
 		}
 		scripts.forEach(script => {
@@ -1607,6 +1619,8 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		}
 		return props;
 	}
+	case "textCase":
+		return addClass("text-transform", value as string, output, props);
 	case "draw":
 	case "manifest":
 	case "markdown":
@@ -1862,6 +1876,7 @@ ${generated}});`);
 	case "rel":
 	case "analytics":
 	case "recaptcha":
+	case "textCase":
 		return;
 	}
 	failed(name);
