@@ -159,19 +159,24 @@ if(component.dataset.editor) {
 							});
 						});
 					})
-				} else {
+				} else if(value.src) {
 					node.style.backgroundImage = value.src;
 				}
-				// custom
-				node.style.backgroundSize = "contain";
-				// static
-				node.style.backgroundPosition = "center";
-				node.style.backgroundRepeat = "no-repeat";
-				node.style.height = "480px";
+				if(typeof value === "string" || value.src) {
+					// custom
+					node.style.backgroundSize = "contain";
+					// static
+					node.style.backgroundPosition = "center";
+					node.style.backgroundRepeat = "no-repeat";
+					node.style.height = "480px";
+				} else {
+					node.innerText = value.text;
+				}
 				return node;
 			}
 			static value(node) {
 				return {
+					text : node.innerText,
 					src : node.style.backgroundImage,
 				};
 			}
@@ -796,7 +801,8 @@ html, body {
 * { 
 	box-sizing: border-box;
 }
-.content p, .content h1, .content h2, .content h3, .content ul, .content ol, .content div {
+.content p, .content h1, .content h2, .content h3, .content ul, .content ol, .content div, .content code {
+	margin : 0;
 	margin-top : 16px;
 }
 button {
