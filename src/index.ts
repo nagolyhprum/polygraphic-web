@@ -144,7 +144,7 @@ if(component.dataset.editor) {
 			static create(value) {
 				var node = super.create();
 				if(typeof value === "string") {
-					node.style.backgroundImage = "url(" + value + ")";
+					node.src = value;
 					windowFetch(value).then(function (res){
 						return res.arrayBuffer().then(function (buffer) {
 							var type = value.slice("data:".length, value.indexOf(";"));
@@ -155,34 +155,26 @@ if(component.dataset.editor) {
 									type
 								})]
 							).then(function(value) {
-								node.style.backgroundImage = "url(" + value + ")";
+								node.src = value;
 							});
 						});
 					})
 				} else if(value.src) {
-					node.style.backgroundImage = value.src;
+					node.src = value.src;
 				}
-				if(typeof value === "string" || value.src) {
-					// custom
-					node.style.backgroundSize = "contain";
-					// static
-					node.style.backgroundPosition = "center";
-					node.style.backgroundRepeat = "no-repeat";
-					node.style.height = "480px";
-				} else {
-					node.innerText = value.text;
-				}
+				node.style.objectFit = "contain";
+				node.style.width = "100%";
+				node.style.height = "480px";
 				return node;
 			}
 			static value(node) {
 				return {
-					text : node.innerText,
-					src : node.style.backgroundImage,
+					src : node.src,
 				};
 			}
 		}
 		ImageBlot.blotName = 'image';
-		ImageBlot.tagName = 'div';
+		ImageBlot.tagName = 'img';
 		Quill.register(ImageBlot, true);
 	}
 	editor.off("text-change", component.quill.onTextChange);
@@ -801,7 +793,7 @@ html, body {
 * { 
 	box-sizing: border-box;
 }
-.content p, .content h1, .content h2, .content h3, .content ul, .content ol, .content div, .content code {
+.content p, .content h1, .content h2, .content h3, .content ul, .content ol, .content img, .content code, .content pre {
 	margin : 0;
 	margin-top : 16px;
 }
