@@ -15,7 +15,8 @@ import {
 	getDependencies,
 	compile,
 	stubs,
-	EventConfig
+	EventConfig,
+	Theme
 } from "polygraphic";
 import { DocumentOutput, Manifest, TagProps } from "./types";
 export * from "./types";
@@ -1662,6 +1663,18 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	}
 	case "textCase":
 		return addClass("text-transform", value as string, output, props);
+	case "theme": {
+		const theme = value as Theme;
+		const all = output.css.queries["@media all"] = output.css.queries["@media all"] || {};
+		// A
+		const a = all["a"] = all["a"] || {};
+		a["color"] = theme.link;
+		// BODY
+		const body = all["body"] = all["body"] || {};
+		body["color"] = theme.text;
+		body["background"] = theme.background;
+		return props;
+	}
 	case "draw":
 	case "manifest":
 	case "markdown":
@@ -1864,6 +1877,7 @@ ${generated}});`);
 		}
 		return;
 	}
+	case "theme":
 	case "links":
 	case "metas":
 	case "title":
