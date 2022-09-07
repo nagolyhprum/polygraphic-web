@@ -851,6 +851,9 @@ html, body {
 	margin : 0;
 	margin-top : 16px;
 }
+.content pre, .content code {
+	overflow : auto;
+}
 button {
 	cursor : pointer;
 	text-align : start;
