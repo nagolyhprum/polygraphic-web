@@ -217,7 +217,7 @@ if(component.dataset.editor) {
 				wordCount: true,
 				toolbar: [
 					[{ 'header': [1, 2, 3, false] }],
-					['bold', 'italic', 'underline', 'link'],
+					['bold', 'italic', 'underline', 'link', 'code'],
 					[{ 'list': 'ordered' }, { 'list': 'bullet' }],
 					['image', 'code-block'],
 					["fullscreen"]
@@ -847,11 +847,17 @@ html, body {
 * { 
 	box-sizing: border-box;
 }
-.content p, .content h1, .content h2, .content h3, .content ul, .content ol, .content img, .content code, .content pre {
+.content p, .content h1, .content h2, .content h3, .content ul, .content ol, .content img, .content pre {
 	margin : 0;
 	margin-top : 16px;
 }
-.content pre, .content code {
+.content code {
+	color : black;
+    padding: 2px 4px;
+    background-color: #f0f0f0;
+    border-radius: 3px;
+}
+.content pre {
 	overflow : auto;
 }
 button {
