@@ -204,6 +204,12 @@ if(component.dataset.editor) {
 		ImageBlot.blotName = 'image';
 		ImageBlot.tagName = 'img';
 		Quill.register(ImageBlot, true);
+		// FULLSCREEN
+		var Parchment = Quill.import("parchment");
+		var FullScreen = new Parchment.Attributor.Class('fullscreen', 'ql-fullscreen', {
+			scope: Parchment.Scope.INLINE
+		});
+		Quill.register(FullScreen, true);
 		// CREATE
 		editor = component.quill = new Quill(component, {
 			modules: {
@@ -213,10 +219,14 @@ if(component.dataset.editor) {
 					[{ 'header': [1, 2, 3, false] }],
 					['bold', 'italic', 'underline', 'link'],
 					[{ 'list': 'ordered' }, { 'list': 'bullet' }],
-					['image', 'code-block']
+					['image', 'code-block'],
+					["fullscreen"]
 				]
 			},
 			theme: 'snow'
+		});
+		component.parentNode.querySelector('.ql-fullscreen').addEventListener('click', function() {
+			component.parentNode.requestFullscreen();
 		});
 	}
 	if(component.quill.onTextChange) {
@@ -1252,7 +1262,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			props
 		);
 		return props;
-	case "name":
+	case "name": {
 		addClass(
 			"display",
 			getDisplay(component),
@@ -1266,6 +1276,13 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		if(value === "editor") {
 			output.dependencies.add("quill");
 			props["data-editor"] = "true";
+			const all = output.css.queries["@media all"] = output.css.queries["@media all"] || {};
+			const selector = ".ql-snow.ql-toolbar button.ql-fullscreen";
+			const element = all[selector] = all[selector] || {};
+			element["width"] = "auto";
+			const after = all[`${selector}:after`] = all[`${selector}:after`] || {};
+			after["content"] = "\"Fullscreen\"";
+			addClass("flex-grow", "1", output, props);
 		}
 		if(value === "content") {
 			props.className.add("content");
@@ -1315,6 +1332,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			props.type = value as string;
 		}
 		return props;
+	}
 	case "font":
 		output.font = value as string;
 		return props;
