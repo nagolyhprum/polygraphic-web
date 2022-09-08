@@ -847,9 +847,6 @@ html, body {
 * { 
 	box-sizing: border-box;
 }
-.content {
-	text-align : justify;
-}
 .content p, .content h1, .content h2, .content h3, .content ul, .content ol, .content img, .content pre {
 	margin : 0;
 	margin-top : 16px;
