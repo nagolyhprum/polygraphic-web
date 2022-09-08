@@ -27,6 +27,11 @@ import { minify as minifyHtml } from "html-minifier";
 import CleanCss from "clean-css";
 import UglifyJS from "uglify-js";
 import {escape as escapeHtml} from "html-escaper";
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+import packageJSON from "../package.json";
+
+const VERSION = packageJSON.version;
 
 const handlebars = (input : string, data : unknown) => {
 	const template = compileHB(input);
@@ -190,9 +195,6 @@ if(component.dataset.editor) {
 				} else if(value.src) {
 					node.src = value.src;
 				}
-				node.style.objectFit = "contain";
-				node.style.width = "100%";
-				node.style.height = "480px";
 				return node;
 			}
 			static value(node) {
@@ -851,6 +853,16 @@ html, body {
 	margin : 0;
 	margin-top : 16px;
 }
+@media screen and (min-width: 800px) {
+	.content img {
+		height 480px;
+	}	
+}
+.content img {
+	object-fit : contain;
+	width : 100%;
+	height : 240px;
+}
 .content code {
 	color : black;
     padding: 2px 4px;
@@ -887,17 +899,18 @@ textarea, select, input, button, html, body, nav, footer, header, main, section,
 export const html = <Global extends GlobalState, Local>(
 	root : ComponentFromConfig<Global, Local>,
 	name : string,
+	uuid : string,
 	minify = false
 ) => (
 		generateState : (event : EventConfig<GlobalState, null, null>) => Global & Local
 	) : Record<string, string | Buffer> => {
-		const result = json(root, name)(generateState);
+		const result = json(root, name, uuid)(generateState);
 		const files : Record<string, string | Buffer> = {			
 			[`${name}.html`] : minify ? minifyHtml(document(result), {
 				collapseWhitespace: true,
 			}) : document(result),
-			"shared.css" : sharedCss(result.font, minify),
-			[`${name}.css`] : minifyCss(Object.keys(result.css.queries).map(query => {
+			[`shared.css?q=${VERSION}`] : sharedCss(result.font, minify),
+			[`${name}.css?q=${uuid}`] : minifyCss(Object.keys(result.css.queries).map(query => {
 				return `${query}{\n\t${
 					Object.keys(result.css.queries?.[query] || {}).map(className => {
 						return `${className}{${
@@ -907,8 +920,8 @@ export const html = <Global extends GlobalState, Local>(
 					}).join("\n\t")}}`;
 			}).join("\n"), minify),
 			...(result.js.length ? {
-				"shared.js" : sharedJs(result, minify),
-				[`${name}.js`] : minifyJs(result.js.join("\n") + `bind(document.body, Local(global, 0));${result.analytics ? `
+				[`shared.js?q=${VERSION}`] : sharedJs(result, minify),
+				[`${name}.js?q=${uuid}`] : minifyJs(result.js.join("\n") + `bind(document.body, Local(global, 0));${result.analytics ? `
 window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag("js", new Date());
@@ -989,7 +1002,8 @@ const stylesheets = [{
 
 const json = <Global extends GlobalState, Local>(
 	root : ComponentFromConfig<Global, Local>,
-	name : string
+	name : string,
+	uuid : string
 ) => (
 		
 		generateState : (event : EventConfig<GlobalState, null, null>) => Global & Local
@@ -1013,6 +1027,7 @@ const json = <Global extends GlobalState, Local>(
 			local : state
 		});
 		const output : DocumentOutput = {
+			uuid,
 			font : "",
 			name,
 			analytics : "",
@@ -2260,6 +2275,7 @@ speech.listen = function(config) {
 ).join("\n");
 
 const document = ({
+	uuid,
 	name,
 	scripts,
 	stylesheets,
@@ -2289,8 +2305,8 @@ const document = ({
 	Object.keys(links).filter(key => links[key]).map(key => `<link rel="${key}" href="${links[key]}" />`).join("")
 }`}
 		${stylesheets.map(href => `<link href="${href}" rel="stylesheet"/>`).join("")}
-		<link href="/shared.css" rel="stylesheet" />
-		<link href="/${name}.css" rel="stylesheet" />
+		<link href="/shared.css?q=${VERSION}" rel="stylesheet" />
+		<link href="/${name}.css?q=${uuid}" rel="stylesheet" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 	</head>
 	<body>
@@ -2301,7 +2317,7 @@ const document = ({
 	] : []), ...(analytics ? [
 		`https://www.googletagmanager.com/gtag/js?id=${analytics}`
 	] : []), ...scripts].map(src => `<script defer src="${src}"></script>`).join("")}
-		${js.length ? `<script defer src="/shared.js"></script><script defer src="/${name}.js"></script>` : ""}
+		${js.length ? `<script defer src="/shared.js?q=${VERSION}"></script><script defer src="/${name}.js?q=${uuid}"></script>` : ""}
 	</body>
 </html>`;
 };
