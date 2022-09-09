@@ -849,26 +849,30 @@ html, body {
 * { 
 	box-sizing: border-box;
 }
+.ql-editor p, .ql-editor h1, .ql-editor h2, .ql-editor h3, .ql-editor ul, .ql-editor ol, .ql-editor img, .ql-editor pre,
 .content p, .content h1, .content h2, .content h3, .content ul, .content ol, .content img, .content pre {
 	margin : 0;
 	margin-top : 16px;
 }
 @media screen and (min-width: 800px) {
-	.content img {
+	.ql-editor img, .content img {
 		height 480px;
 	}	
 }
+.ql-editor img, 
 .content img {
 	object-fit : contain;
 	width : 100%;
 	height : 240px;
 }
+.ql-editor code, 
 .content code {
 	color : black;
     padding: 2px 4px;
     background-color: #f0f0f0;
     border-radius: 3px;
 }
+.ql-editor pre, 
 .content pre {
 	overflow : auto;
 }
