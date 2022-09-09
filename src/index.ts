@@ -862,16 +862,16 @@ html, body {
 	margin : 0;
 	margin-top : 16px;
 }
-@media screen and (min-width: 800px) {
-	.ql-editor img, .content img {
-		height : 480px;
-	}	
-}
 .ql-editor img, 
 .content img {
 	object-fit : contain;
 	width : 100%;
 	height : 240px;
+}
+@media screen and (min-width: 800px) {
+	.ql-editor img, .content img {
+		height : 480px;
+	}	
 }
 .ql-editor code, 
 .content code {
