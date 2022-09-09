@@ -83,7 +83,15 @@ const getDisplay = <Global extends GlobalState, Local>(component : Component<Glo
 };
 
 const minifyCss = (css : string, minify : boolean) : string => {
-	return minify ? new CleanCss().minify(css).styles : css;
+	if(minify) {
+		const clean = new CleanCss().minify(css);
+		if(clean.errors || clean.warnings) {
+			console.log(clean.errors || clean.warnings);
+		} else {
+			return clean.styles;
+		}
+	}
+	return css;
 };
 
 const minifyJs = (js : string, minify : boolean) : string => {
@@ -856,7 +864,7 @@ html, body {
 }
 @media screen and (min-width: 800px) {
 	.ql-editor img, .content img {
-		height 480px;
+		height : 480px;
 	}	
 }
 .ql-editor img, 
