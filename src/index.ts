@@ -248,7 +248,7 @@ if(component.dataset.editor) {
 				if(typeof alt === "string") {
 					node.alt = alt;
 				}
-				return cancel(e);
+				return prevent(e);
 			}
 		});
 		component.parentNode.querySelector('.ql-fullscreen').addEventListener('click', function() {
@@ -341,12 +341,6 @@ function getFiles(event) {
 		return Array.from(event.dataTransfer.files);
 	}
 }
-function prevent(e) {
-	e.preventDefault();
-	e.stopPropagation();
-	e.cancelBubble = true;
-	return false;
-};
 component.ondragenter = prevent
 component.ondragleave = prevent
 component.ondragover = prevent
@@ -380,10 +374,7 @@ component.oncontextmenu = function(e) {
 		callback(local.value, local.index/*,event*/);
 		update();
 	})
-	e.stopPropagation();
-	e.preventDefault();
-	e.cancelBubble = true;
-	return false;
+	return prevent(e);
 };`, output);
 		case "observe":
 			return eventDependency("observe", `
@@ -420,6 +411,12 @@ const converter = new showdown.Converter();
 const sharedJs = (output : DocumentOutput, minify : boolean) => minifyJs(`var windowSetTimeout = window.setTimeout;
 var onUpdate = [];
 var events = {};
+function prevent(e) {
+	e.preventDefault();
+	e.stopPropagation();
+	e.cancelBubble = true;
+	return false;
+}
 function setEvent(id, name, callback) {
 	events[id] = events[id] || {};
 	events[id][name] = callback;
