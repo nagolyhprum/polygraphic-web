@@ -85,8 +85,8 @@ const getDisplay = <Global extends GlobalState, Local>(component : Component<Glo
 const minifyCss = (css : string, minify : boolean) : string => {
 	if(minify) {
 		const clean = new CleanCss().minify(css);
-		if(clean.errors || clean.warnings) {
-			console.log(clean.errors || clean.warnings);
+		if(clean.errors.length || clean.warnings.length) {
+			console.log(clean.warnings.concat(clean.errors));
 		} else {
 			return clean.styles;
 		}
@@ -202,18 +202,34 @@ if(component.dataset.editor) {
 					})
 				} else if(value.src) {
 					node.src = value.src;
+					node.alt = value.alt;
 				}
 				return node;
 			}
 			static value(node) {
 				return {
 					src : node.src,
+					alt : node.alt,
 				};
 			}
 		}
 		ImageBlot.blotName = 'image';
 		ImageBlot.tagName = 'img';
 		Quill.register(ImageBlot, true);
+		quill.root.addEventListener("contextmenu", function(e) {
+			const image = Parchment.find(e.target);
+			if (image instanceof ImageBlot) {
+				const node = image.domNode;
+				const alt = prompt(
+					"Please provide an alt text for this image:", 
+					node.hasAttribute("alt") ? node.alt : ""
+				);
+				if(typeof alt === "string") {
+					node.alt = alt;
+				}
+				return cancel(e);
+			}
+		});
 		// FULLSCREEN
 		var Parchment = Quill.import("parchment");
 		var FullScreen = new Parchment.Attributor.Class('fullscreen', 'ql-fullscreen', {
