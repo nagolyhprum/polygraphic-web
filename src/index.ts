@@ -859,8 +859,7 @@ function bind(root, local) {
 }
 `, minify);
 
-const sharedCss = (name : string, minify : boolean) => minifyCss(`@import url('https://fonts.googleapis.com/css2?family=${name || "Roboto"}:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap');
-html, body {
+const sharedCss = (name : string, minify : boolean) => minifyCss(`html, body {
 	display : flex;
 	width : 100%;
 	min-height : 100%;
@@ -2303,6 +2302,7 @@ speech.listen = function(config) {
 ).join("\n");
 
 const document = ({
+	font,
 	uuid,
 	name,
 	scripts,
@@ -2333,6 +2333,7 @@ const document = ({
 	Object.keys(links).filter(key => links[key]).map(key => `<link rel="${key}" href="${links[key]}" />`).join("")
 }`}
 		${stylesheets.map(href => `<link href="${href}" rel="stylesheet"/>`).join("")}
+		<link href="https://fonts.googleapis.com/css2?family=${font}:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap" rel="stylesheet"/>
 		<link href="/shared.css?q=${VERSION}" rel="stylesheet" />
 		<link href="/${name}.css?q=${uuid}" rel="stylesheet" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
