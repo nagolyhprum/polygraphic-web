@@ -216,20 +216,6 @@ if(component.dataset.editor) {
 		ImageBlot.blotName = 'image';
 		ImageBlot.tagName = 'img';
 		Quill.register(ImageBlot, true);
-		quill.root.addEventListener("contextmenu", function(e) {
-			const image = Parchment.find(e.target);
-			if (image instanceof ImageBlot) {
-				const node = image.domNode;
-				const alt = prompt(
-					"Please provide an alt text for this image:", 
-					node.hasAttribute("alt") ? node.alt : ""
-				);
-				if(typeof alt === "string") {
-					node.alt = alt;
-				}
-				return cancel(e);
-			}
-		});
 		// FULLSCREEN
 		var Parchment = Quill.import("parchment");
 		var FullScreen = new Parchment.Attributor.Class('fullscreen', 'ql-fullscreen', {
@@ -250,6 +236,20 @@ if(component.dataset.editor) {
 				]
 			},
 			theme: 'snow'
+		});
+		editor.root.addEventListener("contextmenu", function(e) {
+			const image = Parchment.find(e.target);
+			if (image instanceof ImageBlot) {
+				const node = image.domNode;
+				const alt = prompt(
+					"Please provide an alt text for this image:", 
+					node.hasAttribute("alt") ? node.alt : ""
+				);
+				if(typeof alt === "string") {
+					node.alt = alt;
+				}
+				return cancel(e);
+			}
 		});
 		component.parentNode.querySelector('.ql-fullscreen').addEventListener('click', function() {
 			component.parentNode.requestFullscreen();
