@@ -185,7 +185,7 @@ if(component.dataset.editor) {
 			static create(value) {
 				var node = super.create();
 				var src = value.src || value;
-				if(src.beginsWith("data:image/")) {
+				if(src.startsWith("data:image/")) {
 					node.src = src;
 					windowFetch(src).then(function (res){
 						return res.arrayBuffer().then(function (buffer) {
