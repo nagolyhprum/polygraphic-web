@@ -184,24 +184,25 @@ if(component.dataset.editor) {
 		class ImageBlot extends BlockEmbed {
 			static create(value) {
 				var node = super.create();
-				if(typeof value === "string") {
-					node.src = value;
-					windowFetch(value).then(function (res){
+				var src = value.src || value;
+				if(src.beginsWith("data:image/")) {
+					node.src = src;
+					windowFetch(src).then(function (res){
 						return res.arrayBuffer().then(function (buffer) {
-							var type = value.slice("data:".length, value.indexOf(";"));
+							var type = src.slice("data:".length, src.indexOf(";"));
 							events[component.dataset.id].onDrop(
 								local.value, 
 								local.index, 
 								[new File([buffer], "image." + type.split("/").pop(), {
 									type
 								})]
-							).then(function(value) {
-								node.src = value;
+							).then(function(src) {
+								node.src = src;
 							});
 						});
 					})
-				} else if(value.src) {
-					node.src = value.src;
+				} else {
+					node.src = src;
 					node.alt = value.alt;
 				}
 				return node;
