@@ -1107,7 +1107,9 @@ ${output.manifest ? `onUpdate.push(function() {
 });` : ""}
 ${output.dependencies.has("quill") ? `onUpdate.push(function() {
 	Array.from(document.querySelectorAll(".content pre.ql-syntax")).forEach(function(element) {
-		hljs.highlightElement(element);
+		if(!element.classList.contains("hljs")) {
+			hljs.highlightElement(element);
+		}
 	});
 });` : ""}`);
 		}
