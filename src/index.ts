@@ -790,7 +790,9 @@ function Component(component) {
 							}
 						}
 						cache.prevData = curr;
-						target.value = cache.value;
+						setTimeout(function() {
+							target.value = cache.value;
+						});
 						return;
 					case "position":
 						var shouldTransition = target.style.top || target.style.right || target.style.bottom || target.style.left;
