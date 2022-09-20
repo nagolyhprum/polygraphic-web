@@ -359,6 +359,30 @@ component.ondrop = function(event) {
 	}
 	return prevent(event);
 };`, output);
+		case "onWebSocketOpen":
+			return eventDependency(dependency, `
+socket.on("open", function() {
+	callback(local.value, local.index/*,event*/);
+	update();
+});`, output);
+		case "onWebSocketMessage":
+			return eventDependency(dependency, `
+socket.on("message", function(event) {
+	callback(local.value, local.index, JSON.parse(event));
+	update();
+});`, output);
+		case "onWebSocketClose":
+			return eventDependency(dependency, `
+socket.on("close", function() {
+	callback(local.value, local.index/*,event*/);
+	update();
+});`, output);
+		case "onWebSocketError":
+			return eventDependency(dependency, `
+socket.on("error", function(error) {
+	callback(local.value, local.index, error);
+	update();
+});`, output);
 		case "onClick":
 			return eventDependency("onClick", `			
 component.onclick = function() {
@@ -1014,9 +1038,6 @@ const scripts = [{
 }, {
 	dependency : "event.markdown",
 	src : "https://cdnjs.cloudflare.com/ajax/libs/showdown/2.0.3/showdown.min.js"
-}, {
-	dependency : "socket",
-	src : "https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.4.1/socket.io.min.js"
 }];
 
 const stylesheets = [{
@@ -1746,9 +1767,29 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		body["background"] = theme.background;
 		return props;
 	}
+	case "websocket":
+		output.js.push(`var socket = (function() {
+	var socket = new WebSocket("${value}");
+	return {
+		on : function(name, callback) {
+			socket.addEventListener(name, callback);
+		},
+		send : function(name, data) {
+			socket.send(JSON.stringify({
+				name : name,
+				data : data,
+			}));
+		}
+	};
+})();`);
+		return props;
 	case "draw":
 	case "manifest":
 	case "markdown":
+	case "onWebSocketOpen":
+	case "onWebSocketMessage":
+	case "onWebSocketClose":
+	case "onWebSocketError":
 	case "onDragEnd":
 	case "onResize":
 	case "onDrop":
@@ -1892,6 +1933,10 @@ window.onpopstate = function() {
 		}
 		return;
 	}
+	case "onWebSocketOpen":
+	case "onWebSocketMessage":
+	case "onWebSocketClose":
+	case "onWebSocketError": 
 	case "onInit":
 	case "onDragStart":
 	case "onDragEnd":
@@ -1948,6 +1993,7 @@ ${generated}});`);
 		}
 		return;
 	}
+	case "websocket":
 	case "theme":
 	case "links":
 	case "metas":
