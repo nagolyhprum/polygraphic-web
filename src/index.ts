@@ -368,7 +368,7 @@ socket.on("open", function() {
 		case "onWebSocketMessage":
 			return eventDependency(dependency, `
 socket.on("message", function(event) {
-	callback(local.value, local.index, JSON.parse(event));
+	callback(local.value, local.index, JSON.parse(event.data));
 	update();
 });`, output);
 		case "onWebSocketClose":
@@ -2205,20 +2205,6 @@ var setTimeout = (function() {
 }, {
 	dependency : "event.markdown",
 	code : "var converter = new showdown.Converter();"
-}, {
-	dependency : "socket",
-	code : `
-var socket = (function () {
-	var socket = io();
-	return {
-		on : function(name, callback) {
-			socket.on(name, function(data) {
-				callback({ data })
-				update();
-			})
-		}
-	};
-})();`
 }, {
 	dependency : "speech",
 	code : "var speech = {};"
