@@ -888,7 +888,7 @@ const sharedCss = (name : string, minify : boolean) => minifyCss(`html, body {
 	width : 100%;
 	min-height : 100%;
 	font-size : 16px;
-	font-family: '${name}', sans-serif;
+	font-family: '${name || "Roboto"}', sans-serif;
 }
 .grecaptcha-badge {
 	opacity : 0;
@@ -1407,6 +1407,9 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		}
 		return props;
 	}
+	case "ld":
+		output.ld = value;
+		return props;
 	case "font":
 		output.font = value as string;
 		return props;
@@ -1426,7 +1429,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		);
 	case "id":
 		if(value) {
-			props["data-id"] = value as string;
+			props["data-id"] = (value as unknown) as string;
 		}
 		return props;
 	case "position":
@@ -2049,6 +2052,7 @@ ${generated}});`);
 	case "analytics":
 	case "recaptcha":
 	case "textCase":
+	case "ld":
 		return;
 	}
 	failed(name);
@@ -2336,6 +2340,7 @@ speech.listen = function(config) {
 ).join("\n");
 
 const document = ({
+	ld,
 	font,
 	uuid,
 	name,
@@ -2357,6 +2362,7 @@ const document = ({
     <head>
 		${`
 			<title>${manifest?.name ?? title}</title>
+			${ld ? `<script type="application/ld+json">${JSON.stringify(ld)}</script>` : ""}
 			${manifest ? `
 			<meta name="description" content="${manifest.description}" />
 			<meta name="theme-color" content="${manifest.theme_color}" />
@@ -2367,7 +2373,7 @@ const document = ({
 	Object.keys(links).filter(key => links[key]).map(key => `<link rel="${key}" href="${links[key]}" />`).join("")
 }`}
 		${stylesheets.map(href => `<link href="${href}" rel="stylesheet"/>`).join("")}
-		<link href="https://fonts.googleapis.com/css2?family=${font}:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap" rel="stylesheet"/>
+		<link href="https://fonts.googleapis.com/css2?family=${font || "Roboto"}:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap" rel="stylesheet"/>
 		<link href="/shared.css?q=${VERSION}" rel="stylesheet" />
 		<link href="/${name}.css?q=${uuid}" rel="stylesheet" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
