@@ -1636,7 +1636,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			props
 		);
 	case "href":
-		props.href = value as string;
+		props.href = output.isAmp ? `/amp${value}` : `${value}`;
 		return props;
 	case "target":
 		props.target = value as string;
