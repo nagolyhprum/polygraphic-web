@@ -3,6 +3,9 @@ import { Component, GlobalState } from "polygraphic";
 export type Manifest = Component<GlobalState, GlobalState>["manifest"]
 
 export type DocumentOutput = {
+    drawer : string
+    minify?: boolean
+    isAmp?: boolean
     ld?: unknown
     font: string
     uuid : string

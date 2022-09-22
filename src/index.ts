@@ -16,7 +16,22 @@ import {
 	compile,
 	stubs,
 	EventConfig,
-	Theme
+	Theme,
+	fixed,
+	clip,
+	observe,
+	block,
+	set,
+	condition,
+	position,
+	column,
+	padding,
+	index as setIndex,
+	background,
+	clientOnly,
+	indexes,
+	id,
+	eq,
 } from "polygraphic";
 import { DocumentOutput, Manifest, TagProps } from "./types";
 export * from "./types";
@@ -883,12 +898,12 @@ function bind(root, local) {
 }
 `, minify);
 
-const sharedCss = (name : string, minify : boolean) => minifyCss(`html, body {
+const sharedCss = (output : DocumentOutput) => minifyCss(`html, body {
 	display : flex;
 	width : 100%;
 	min-height : 100%;
 	font-size : 16px;
-	font-family: '${name || "Roboto"}', sans-serif;
+	font-family: '${output.font || "Roboto"}', sans-serif;
 }
 .grecaptcha-badge {
 	opacity : 0;
@@ -945,40 +960,58 @@ textarea, select, input, button, html, body, nav, footer, header, main, section,
 }
 @-webkit-keyframes spin {
 	to { -webkit-transform: rotate(360deg); }
-}`, minify);
+}`, !!output.minify);
 
-export const html = <Global extends GlobalState, Local>(
+const localCss = (output : DocumentOutput) => {
+	return minifyCss(Object.keys(output.css.queries).map(query => {
+		return `${query}{\n\t${
+			Object.keys(output.css.queries?.[query] || {}).map(className => {
+				return `${className}{${
+					Object.keys(output.css.queries?.[query]?.[className] || {}).map(styleName => {
+						return `${styleName}:${output.css.queries?.[query]?.[className]?.[styleName]}`;
+					}).join(";")}}`;
+			}).join("\n\t")}}`;
+	}).join("\n"), !!output.minify);
+};
+
+export const html = <Global extends GlobalState, Local>({
+	root,
+	name,
+	uuid,
+	isAmp,
+	minify = false
+} : {
 	root : ComponentFromConfig<Global, Local>,
 	name : string,
 	uuid : string,
-	minify = false
-) => (
+	isAmp?: boolean
+	minify?: boolean
+}) => (
 		generateState : (event : EventConfig<GlobalState, null, null>) => Global & Local
 	) : Record<string, string | Buffer> => {
-		const result = json(root, name, uuid)(generateState);
+		const result = json({
+			root,
+			name,
+			uuid,
+			isAmp
+		})(generateState);
 		const files : Record<string, string | Buffer> = {			
 			[`${name}.html`] : minify ? minifyHtml(document(result), {
 				collapseWhitespace: true,
 			}) : document(result),
-			[`shared.css?q=${VERSION}`] : sharedCss(result.font, minify),
-			[`${name}.css?q=${uuid}`] : minifyCss(Object.keys(result.css.queries).map(query => {
-				return `${query}{\n\t${
-					Object.keys(result.css.queries?.[query] || {}).map(className => {
-						return `${className}{${
-							Object.keys(result.css.queries?.[query]?.[className] || {}).map(styleName => {
-								return `${styleName}:${result.css.queries?.[query]?.[className]?.[styleName]}`;
-							}).join(";")}}`;
-					}).join("\n\t")}}`;
-			}).join("\n"), minify),
-			...(result.js.length ? {
-				[`shared.js?q=${VERSION}`] : sharedJs(result, minify),
-				[`${name}.js?q=${uuid}`] : minifyJs(result.js.join("\n") + `bind(document.body, Local(global, 0));${result.analytics ? `
-window.dataLayer = window.dataLayer || [];
-function gtag(){dataLayer.push(arguments);}
-gtag("js", new Date());
-gtag("config", "${result.analytics}");` : ""}
-				`, minify),
-			} : {})
+			...(isAmp ? {} : {
+				[`shared.css?q=${VERSION}`] : sharedCss(result),
+				[`${name}.css?q=${uuid}`] : localCss(result),
+				...(result.js.length ? {
+					[`shared.js?q=${VERSION}`] : sharedJs(result, minify),
+					[`${name}.js?q=${uuid}`] : minifyJs(result.js.join("\n") + `bind(document.body, Local(global, 0));${result.analytics ? `
+	window.dataLayer = window.dataLayer || [];
+	function gtag(){dataLayer.push(arguments);}
+	gtag("js", new Date());
+	gtag("config", "${result.analytics}");` : ""}
+					`, minify),
+				} : {})
+			}),
 		};
 		if(result.manifest) {
 			const manifest = result.manifest;
@@ -1048,11 +1081,19 @@ const stylesheets = [{
 	href : "https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.css",
 }];
 
-const json = <Global extends GlobalState, Local>(
+const json = <Global extends GlobalState, Local>({
+	root,
+	name,
+	uuid,
+	isAmp,
+	minify
+} : {
 	root : ComponentFromConfig<Global, Local>,
 	name : string,
 	uuid : string
-) => (
+	isAmp?: boolean
+	minify?: boolean
+}) => (
 		
 		generateState : (event : EventConfig<GlobalState, null, null>) => Global & Local
 	) : DocumentOutput => { 
@@ -1075,6 +1116,9 @@ const json = <Global extends GlobalState, Local>(
 			local : state
 		});
 		const output : DocumentOutput = {
+			drawer : "",
+			minify,
+			isAmp,
 			uuid,
 			font : "",
 			name,
@@ -1154,7 +1198,7 @@ function failed(_ : never) {
 	throw new Error("this should never happen");
 }
 
-const getTagName = (name : Tag) : {
+const getTagName = (name : Tag, output : DocumentOutput) : {
     name : string
     selfClosing : boolean
 } => {
@@ -1213,7 +1257,7 @@ const getTagName = (name : Tag) : {
 		};
 	case "image":
 		return {
-			name : "img",
+			name : output.isAmp ? "amp-img" : "img",
 			selfClosing : true
 		};
 	}
@@ -1327,8 +1371,17 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	output : DocumentOutput
 }) : TagProps => {
 	switch(name) {
+	case "on":
+		props.on = value as string;
+		return props;
+	case "layout":
+		props.layout = value as string;
+		return props;
 	case "width":
 	case "height":
+		if(component.name === "image" && typeof value === "number" && value >= 0) {
+			props[name] = numberToMeasurement(value);
+		}
 		addClass(
 			name,
 			numberToMeasurement(value as string | number),
@@ -1428,7 +1481,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			props
 		);
 	case "id":
-		if(value) {
+		if(value && !output.isAmp) {
 			props["data-id"] = (value as unknown) as string;
 		}
 		return props;
@@ -1591,7 +1644,9 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	case "links": {
 		const map = value as Record<string, string>;
 		Object.keys(map).forEach(key => {
-			output.head.links[key] = map[key];
+			if(!(key === "amphtml" && output.isAmp)) {
+				output.head.links[key] = map[key];
+			}
 		});
 		return props;
 	}
@@ -1730,6 +1785,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		output.recaptcha = `${value}`;
 		return props;
 	case "hover": {
+		if(output.isAmp) return props;
 		const {
 			width,
 			height,
@@ -1786,6 +1842,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	};
 })();`);
 		return props;
+	case "drawer":
 	case "draw":
 	case "manifest":
 	case "markdown":
@@ -1839,6 +1896,8 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 	index : number
 }) => {
 	switch(name) {
+	case "layout":
+		return;
 	case "html":
 		output.html.push(value as string);
 		return;
@@ -1981,6 +2040,7 @@ ${generated}});`);
 		output.manifest = value as Manifest;
 		return;
 	case "hover": {
+		if(output.isAmp) return;
 		const { children } = (value as Component<Global, Local>);
 		if(children?.length) {
 			children.forEach(component => handle({
@@ -1995,6 +2055,89 @@ ${generated}});`);
 			}));
 		}
 		return;
+	}
+	case "drawer": {
+		const component = value as Component<Global, Local>;
+		if(output.isAmp) {
+			const adapterOutput = handle({
+				index,
+				component : (component.children ?? [])[0] as any,
+				global,
+				local,
+				output : {
+					...output,
+					html : []
+				}
+			});
+			output.drawer = `<amp-sidebar id="drawer" layout="nodisplay" side="right">${minifyHtml(adapterOutput.html.join(""), {
+				collapseWhitespace: true,
+			})}</amp-sidebar>`;
+		} else {
+			const drawer = clientOnly<Global, Local>(fixed(MATCH, MATCH, [
+				id("drawer"),
+				clip(true),
+				observe(({
+					global,
+					event,
+				}) => block([
+					set(event.clickable, global.isDrawerOpen),
+					condition(
+						eq(global.isDrawerOpen, true),
+						set(event.opacity, 1),
+					).otherwise(
+						set(event.opacity, 0),
+					),
+				])),
+				setIndex(indexes.drawer),
+				position(0),
+				background(theme => theme.overlay),
+				column(240, MATCH, [
+					({
+						parent
+					}) => {
+						parent.children = component.children;
+						return parent;
+					},
+					position({
+						right : 0,
+					}),
+					background(theme => theme.background),
+					padding(16),
+					observe(({
+						global,
+						event,
+					}) => condition(
+						eq(global.isDrawerOpen, true),
+						set(event.translate, {
+							x : 0,
+							y : 0,
+						}),
+					).otherwise(
+						set(event.translate, {
+							x : MATCH,
+							y : 0,
+						}),
+					)),
+				]),
+			]))({
+				global,
+				local,
+				parent : {
+					height : 0,
+					width : 0,
+					name : "root",
+				}
+			});
+			handle({
+				index,
+				component : (drawer.children || [])[0],
+				global,
+				local,
+				output
+			});
+			return props;
+		}
+		return props;
 	}
 	case "websocket":
 	case "theme":
@@ -2053,6 +2196,7 @@ ${generated}});`);
 	case "recaptcha":
 	case "textCase":
 	case "ld":
+	case "on":
 		return;
 	}
 	failed(name);
@@ -2076,7 +2220,7 @@ const handle = <Global extends GlobalState, Local>({
 	const {
 		name,
 		selfClosing
-	} = getTagName(component.name);
+	} = getTagName(component.name, output);
 
 	if(component.observe) {
 		component.observe.forEach(callback => {
@@ -2339,27 +2483,35 @@ speech.listen = function(config) {
 	it => it.code.trim()
 ).join("\n");
 
-const document = ({
-	ld,
-	font,
-	uuid,
-	name,
-	scripts,
-	stylesheets,
-	html,
-	js,
-	manifest,
-	head: {
-		title,
-		metas,
-		links
-	},
-	analytics,
-	recaptcha
-} : DocumentOutput) => {
+const document = (output : DocumentOutput) => {
+	const {
+		isAmp,
+		ld,
+		font,
+		uuid,
+		name,
+		scripts,
+		stylesheets,
+		html,
+		js,
+		manifest,
+		head: {
+			title,
+			metas,
+			links
+		},
+		analytics,
+		recaptcha,
+		minify,
+		drawer
+	} = output;
 	return `<!doctype html>
-    <html lang="en">
+    <html lang="en" ${isAmp ? "amp" : ""}>
     <head>
+		<meta charset="utf-8">
+		${isAmp ? "<script async src=\"https://cdn.ampproject.org/v0.js\"></script>" : ""}
+		${isAmp && drawer ? "<script async custom-element=\"amp-sidebar\" src=\"https://cdn.ampproject.org/v0/amp-sidebar-0.1.js\"></script>" : ""}
+		${isAmp ? "<style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style><noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>" : ""}
 		${`
 			<title>${manifest?.name ?? title}</title>
 			${ld ? `<script type="application/ld+json">${JSON.stringify(ld)}</script>` : ""}
@@ -2372,21 +2524,29 @@ const document = ({
 }${
 	Object.keys(links).filter(key => links[key]).map(key => `<link rel="${key}" href="${links[key]}" />`).join("")
 }`}
-		${stylesheets.map(href => `<link href="${href}" rel="stylesheet"/>`).join("")}
+		${isAmp ? "" : stylesheets.map(href => `<link href="${href}" rel="stylesheet"/>`).join("")}
 		<link href="https://fonts.googleapis.com/css2?family=${font || "Roboto"}:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap" rel="stylesheet"/>
-		<link href="/shared.css?q=${VERSION}" rel="stylesheet" />
-		<link href="/${name}.css?q=${uuid}" rel="stylesheet" />
+		${isAmp ? `
+			<style amp-custom>
+				${sharedCss(output)}
+				${localCss(output)}
+			</style>
+		` : `
+			<link href="/shared.css?q=${VERSION}" rel="stylesheet" />
+			<link href="/${name}.css?q=${uuid}" rel="stylesheet" />
+		`}
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 	</head>
 	<body>
 		${recaptcha ? `<div class="g-recaptcha" data-sitekey="${recaptcha}" data-callback="onRecaptcha" data-size="invisible"></div>` : ""}
 		${html.join("")}
-		${[...(recaptcha ? [
+		${isAmp ? "" : [...(recaptcha ? [
 		"https://www.google.com/recaptcha/api.js"
 	] : []), ...(analytics ? [
 		`https://www.googletagmanager.com/gtag/js?id=${analytics}`
 	] : []), ...scripts].map(src => `<script defer src="${src}"></script>`).join("")}
-		${js.length ? `<script defer src="/shared.js?q=${VERSION}"></script><script defer src="/${name}.js?q=${uuid}"></script>` : ""}
+		${!isAmp && js.length ? `<script defer src="/shared.js?q=${VERSION}"></script><script defer src="/${name}.js?q=${uuid}"></script>` : ""}
+		${drawer}
 	</body>
 </html>`;
 };
