@@ -1380,7 +1380,7 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	case "width":
 	case "height":
 		if(component.name === "image" && typeof value === "number" && value >= 0) {
-			props[name] = numberToMeasurement(value);
+			props[name] = `${value}`;
 		}
 		addClass(
 			name,
