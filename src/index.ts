@@ -1635,9 +1635,11 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			output,
 			props
 		);
-	case "href":
-		props.href = output.isAmp ? `/amp${value}` : `${value}`;
+	case "href": {
+		const href = value as string;
+		props.href = output.isAmp && href[0] === "/" ? `/amp${href}` : href;
 		return props;
+	}
 	case "target":
 		props.target = value as string;
 		return props;
