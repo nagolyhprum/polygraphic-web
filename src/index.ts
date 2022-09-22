@@ -1258,7 +1258,7 @@ const getTagName = (name : Tag, output : DocumentOutput) : {
 	case "image":
 		return {
 			name : output.isAmp ? "amp-img" : "img",
-			selfClosing : true
+			selfClosing : !output.isAmp
 		};
 	}
 };
