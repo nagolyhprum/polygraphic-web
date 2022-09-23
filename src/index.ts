@@ -42,9 +42,67 @@ import { minify as minifyHtml } from "html-minifier";
 import CleanCss from "clean-css";
 import UglifyJS from "uglify-js";
 import {escape as escapeHtml} from "html-escaper";
+import { parse as parseHTML } from "node-html-parser";
+import hljs from "highlight.js";
+
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore
 import packageJSON from "../package.json";
+
+const hljsCSS = `
+pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em
+}
+code.hljs {
+    padding: 3px 5px
+}
+.hljs {
+    background: #f3f3f3;
+    color: #444
+}
+.hljs-comment {
+    color: #697070
+}
+.hljs-punctuation,.hljs-tag {
+    color: #444a
+}
+.hljs-tag .hljs-attr,.hljs-tag .hljs-name {
+    color: #444
+}
+.hljs-attribute,.hljs-doctag,.hljs-keyword,.hljs-meta .hljs-keyword,.hljs-name,.hljs-selector-tag {
+    font-weight: 700
+}
+.hljs-deletion,.hljs-number,.hljs-quote,.hljs-selector-class,.hljs-selector-id,.hljs-string,.hljs-template-tag,.hljs-type {
+    color: #800
+}
+.hljs-section,.hljs-title {
+    color: #800;
+    font-weight: 700
+}
+.hljs-link,.hljs-operator,.hljs-regexp,.hljs-selector-attr,.hljs-selector-pseudo,.hljs-symbol,.hljs-template-variable,.hljs-variable {
+    color: #ab5656
+}
+.hljs-literal {
+    color: #695
+}
+.hljs-addition,.hljs-built_in,.hljs-bullet,.hljs-code {
+    color: #397300
+}
+.hljs-meta {
+    color: #1f7199
+}
+.hljs-meta .hljs-string {
+    color: #38a
+}
+.hljs-emphasis {
+    font-style: italic
+}
+.hljs-strong {
+    font-weight: 700
+}
+`;
 
 const VERSION = packageJSON.version;
 
@@ -1904,9 +1962,31 @@ const handleChildren = <Global extends GlobalState, Local, Key extends keyof Com
 	switch(name) {
 	case "layout":
 		return;
-	case "html":
-		output.html.push(value as string);
+	case "html": {
+		const html = value as string;
+		if(html) {
+			if(output.isAmp) {
+				const root = parseHTML(html);
+				// HIGHLIGHT
+				root.querySelectorAll("pre.ql-syntax").forEach(it => {
+					const output = hljs.highlightAuto(it.innerText);
+					it.classList.add("hljs");
+					if(output.language) {
+						it.classList.add(`language-${output.language}`);
+					}
+					it.innerHTML = output.value;
+				});
+				// IMAGES
+				root.querySelectorAll("img").forEach(it => {
+					it.replaceWith(`<amp-img src="${it.attributes.src}" height="240" layout="fixed-height"></amp-img>`);
+				});
+				output.html.push(root.outerHTML);
+			} else {
+				output.html.push(html);
+			}
+		}
 		return;
+	}
 	case "text":
 		output.html.push(escapeHtml(value as string || ""));
 		return;
@@ -2534,6 +2614,7 @@ const document = (output : DocumentOutput) => {
 		<link href="https://fonts.googleapis.com/css2?family=${font || "Roboto"}:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap" rel="stylesheet"/>
 		${isAmp ? `
 			<style amp-custom>
+				${output.dependencies.has("quill") ? minifyCss(hljsCSS, true) : ""}
 				${sharedCss(output)}
 				${localCss(output)}
 			</style>
