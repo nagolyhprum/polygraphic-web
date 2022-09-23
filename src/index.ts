@@ -1373,6 +1373,8 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 	switch(name) {
 	case "on":
 		props.on = value as string;
+		props.role = "button";
+		props.tabindex = "0";
 		return props;
 	case "layout":
 		props.layout = value as string;
