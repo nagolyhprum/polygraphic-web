@@ -968,6 +968,9 @@ const sharedCss = (output : DocumentOutput) => minifyCss(`html, body {
 	box-sizing: border-box;
 	font-family: '${output.font || "Roboto"}', sans-serif;
 	font-size : 16px;
+	font-stretch : 100%;
+	font-style : normal;
+	font-weight : 400;
 }
 .ql-editor p, .ql-editor h1, .ql-editor h2, .ql-editor h3, .ql-editor ul, .ql-editor ol, .ql-editor img, .ql-editor pre,
 .content p, .content h1, .content h2, .content h3, .content ul, .content ol, .content img, .content pre {
