@@ -887,7 +887,7 @@ function Component(component) {
 							}
 						}
 						cache.prevData = curr;
-						setTimeout(function() {
+						windowSetTimeout(function() {
 							target.value = cache.value;
 						});
 						return;
