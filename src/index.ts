@@ -159,7 +159,9 @@ const minifyCss = (css : string, minify : boolean) : string => {
 	if(minify) {
 		const clean = new CleanCss().minify(css);
 		if(clean.errors.length || clean.warnings.length) {
-			console.log(clean.warnings.concat(clean.errors));
+			return `/** errors and warnings:
+	${clean.warnings.concat(clean.errors).join("\n\t")}
+*/${css}`;
 		} else {
 			return clean.styles;
 		}
