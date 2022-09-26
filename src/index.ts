@@ -1056,7 +1056,8 @@ export const html = <Global extends GlobalState, Local>({
 			root,
 			name,
 			uuid,
-			isAmp
+			isAmp,
+			minify
 		})(generateState);
 		const files : Record<string, string | Buffer> = {			
 			[`${name}.html`] : minify ? minifyHtml(document(result), {
