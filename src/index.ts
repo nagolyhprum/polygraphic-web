@@ -1142,7 +1142,7 @@ const stylesheets = [{
 	href : "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.6.0/styles/default.min.css",
 }, {
 	dependency : "quill",
-	href : "https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.css",
+	href : "https://cdnjs.cloudflare.com/ajax/libs/quill/1.3.7/quill.snow.min.css",
 }];
 
 const json = <Global extends GlobalState, Local>({
