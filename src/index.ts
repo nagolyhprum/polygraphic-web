@@ -1283,11 +1283,9 @@ const getTagName = (name : Tag, output : DocumentOutput) : {
 			name,
 			selfClosing : false
 		};
-	case "fixed":
 	case "text":
-	case "stack":
 		return {
-			name : "div",
+			name : "span",
 			selfClosing : false
 		};  
 	case "anchor":
@@ -1295,6 +1293,8 @@ const getTagName = (name : Tag, output : DocumentOutput) : {
 			name : "a",
 			selfClosing : false
 		};
+	case "fixed":
+	case "stack":
 	case "grid":
 	case "flex":
 	case "progress":
