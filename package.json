@@ -31,7 +31,7 @@
     "html-minifier": "^4.0.0",
     "moment": "^2.29.1",
     "node-html-parser": "^6.1.0",
-    "polygraphic": "^0.163.7",
+    "polygraphic": "^0.163.8",
     "showdown": "^2.0.3",
     "uglify-js": "^3.16.0"
   },
