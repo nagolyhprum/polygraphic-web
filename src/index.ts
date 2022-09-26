@@ -1003,7 +1003,7 @@ button {
 	cursor : pointer;
 	text-align : start;
 }
-textarea, select, input, button, html, body, nav, footer, header, main, section, h1, h2, h3, p, span, a {
+textarea, select, input, button, html, body, nav, footer, header, main, section, h1, h2, h3, p, a {
 	background : transparent;
 	margin : 0;
 	padding : 0;
@@ -1287,7 +1287,7 @@ const getTagName = (name : Tag, output : DocumentOutput) : {
 	case "text":
 	case "stack":
 		return {
-			name : "span",
+			name : "div",
 			selfClosing : false
 		};  
 	case "anchor":
@@ -1440,7 +1440,9 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 		}
 		return props;
 	case "layout":
-		props.layout = value as string;
+		if(output.isAmp) {
+			props.layout = value as string;
+		}
 		return props;
 	case "width":
 	case "height":
