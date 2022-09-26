@@ -508,7 +508,7 @@ component.oncontextmenu = function(e) {
 
 const converter = new showdown.Converter();
 
-const sharedJs = (output : DocumentOutput, minify : boolean) => minifyJs(`var windowSetTimeout = window.setTimeout;
+const sharedJs = (output : DocumentOutput) => minifyJs(`var windowSetTimeout = window.setTimeout;
 var onUpdate = [];
 var events = {};
 function prevent(e) {
@@ -956,7 +956,7 @@ function bind(root, local) {
 		});
 	});
 }
-`, minify);
+`, !!output.minify);
 
 const sharedCss = (output : DocumentOutput) => minifyCss(`html, body {
 	display : flex;
@@ -1067,7 +1067,7 @@ export const html = <Global extends GlobalState, Local>({
 				[`shared.css?q=${VERSION}`] : sharedCss(result),
 				[`${name}.css?q=${uuid}`] : localCss(result),
 				...(result.js.length ? {
-					[`shared.js?q=${VERSION}`] : sharedJs(result, minify),
+					[`shared.js?q=${VERSION}`] : sharedJs(result),
 					[`${name}.js?q=${uuid}`] : minifyJs(result.js.join("\n") + `bind(document.body, Local(global, 0));${result.analytics ? `
 	window.dataLayer = window.dataLayer || [];
 	function gtag(){dataLayer.push(arguments);}
@@ -2596,7 +2596,6 @@ const document = (output : DocumentOutput) => {
 		},
 		analytics,
 		recaptcha,
-		minify,
 		drawer
 	} = output;
 	return `<!doctype html>
