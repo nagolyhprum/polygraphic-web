@@ -1556,12 +1556,15 @@ const handleProp = <Global extends GlobalState, Local, Key extends keyof Compone
 			props
 		);
 	case "grow":
-		return addClass(
-			"flex-grow",
-			value ? "1" : "",
-			output,
-			props
-		);
+		if(value) {
+			addClass(
+				"flex-grow",
+				"1",
+				output,
+				props
+			);
+		}
+		return props;
 	case "id":
 		if(value && !output.isAmp) {
 			props["data-id"] = (value as unknown) as string;
