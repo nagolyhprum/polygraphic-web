@@ -2145,9 +2145,13 @@ ${generated}});`);
 	case "markdown":
 		output.html.push(converter.makeHtml(value as string));
 		return;
-	case "manifest":
-		output.manifest = value as Manifest;
+	case "manifest": {
+		const manifest = value as Manifest;
+		output.manifest = manifest;
+		output.head.title = manifest?.name ?? "";
+		output.head.metas["description"] = manifest?.description ?? "";
 		return;
+	}
 	case "hover": {
 		if(output.isAmp) return;
 		const { children } = (value as Component<Global, Local>);
@@ -2621,10 +2625,9 @@ const document = (output : DocumentOutput) => {
 		${isAmp && drawer ? "<script async custom-element=\"amp-sidebar\" src=\"https://cdn.ampproject.org/v0/amp-sidebar-0.1.js\"></script>" : ""}
 		${isAmp ? "<style amp-boilerplate>body{-webkit-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-moz-animation:-amp-start 8s steps(1,end) 0s 1 normal both;-ms-animation:-amp-start 8s steps(1,end) 0s 1 normal both;animation:-amp-start 8s steps(1,end) 0s 1 normal both}@-webkit-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-moz-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-ms-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@-o-keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}@keyframes -amp-start{from{visibility:hidden}to{visibility:visible}}</style><noscript><style amp-boilerplate>body{-webkit-animation:none;-moz-animation:none;-ms-animation:none;animation:none}</style></noscript>" : ""}
 		${`
-			<title>${manifest?.name ?? title}</title>
+			<title>${title}</title>
 			${ld ? `<script type="application/ld+json">${JSON.stringify(ld)}</script>` : ""}
 			${manifest ? `
-			<meta name="description" content="${manifest.description}" />
 			<meta name="theme-color" content="${manifest.theme_color}" />
 			<link rel="manifest" href="./${name}-manifest.json" />
 				` : ""}${
