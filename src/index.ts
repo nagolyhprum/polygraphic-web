@@ -984,7 +984,7 @@ h2 {
 	font-size : 24px;
 }
 h3 {
-	font-size : 20px;
+	font-size : 16px;
 }
 .ql-editor p, .ql-editor h1, .ql-editor h2, .ql-editor h3, .ql-editor ul, .ql-editor ol, .ql-editor img, .ql-editor pre,
 .content p, .content h1, .content h2, .content h3, .content ul, .content ol, .content img, .content pre {
