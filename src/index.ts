@@ -986,6 +986,10 @@ h2 {
 h3 {
 	font-size : 16px;
 }
+ul {
+	margin : 0;
+	padding : 16px;
+}
 .ql-editor p, .ql-editor h1, .ql-editor h2, .ql-editor h3, .ql-editor ul, .ql-editor ol, .ql-editor img, .ql-editor pre,
 .content p, .content h1, .content h2, .content h3, .content ul, .content ol, .content img, .content pre {
 	margin : 0;
@@ -2635,7 +2639,10 @@ const document = (output : DocumentOutput) => {
 }${
 	Object.keys(links).filter(key => links[key]).map(key => `<link rel="${key}" href="${links[key]}" />`).join("")
 }`}
-		${isAmp ? "" : stylesheets.map(href => `<link href="${href}" rel="stylesheet"/>`).join("")}
+		${isAmp ? "" : stylesheets.map(href => `
+			<link rel="preload" href="${href}" as="style" onload="this.onload=null;this.rel='stylesheet'">
+			<noscript><link rel="stylesheet" href="${href}"></noscript> 
+		`).join("")}
 		<link href="https://fonts.googleapis.com/css2?family=${font || "Roboto"}:ital,wght@0,400;0,500;0,700;1,400;1,500;1,700&display=swap" rel="stylesheet"/>
 		${isAmp ? `
 			<style amp-custom>
